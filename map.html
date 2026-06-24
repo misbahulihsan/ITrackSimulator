@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITrack Simulator | Control Panel</title>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            --sidebar-width: 440px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        #app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Sidebar styling with glassmorphism */
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100%;
+            background-color: #0f172a;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+            overflow-y: auto;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Header design */
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(15, 23, 42, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-header h1 span {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-header p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Section Cards */
+        .card {
+            margin: 16px 20px;
+            padding: 16px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Form Inputs */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-color);
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        /* Button styles */
+        button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 10px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background-color: rgba(248, 113, 113, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(248, 113, 113, 0.25);
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+
+        /* Device List Cards */
+        .device-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .device-item {
+            padding: 10px 12px;
+            background-color: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .device-item:hover, .device-item.active {
+            border-color: var(--accent-color);
+            background-color: rgba(56, 189, 248, 0.05);
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .device-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .device-meta {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Telemetry Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .info-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .info-value.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-status {
+            font-size: 0.6rem;
+            padding: 1px 4px;
+        }
+
+        .badge-running { background-color: rgba(74, 222, 128, 0.15); color: var(--success-color); }
+        .badge-stopped { background-color: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+        .badge-scheduled { background-color: rgba(251, 191, 36, 0.15); color: var(--warning-color); }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 6px;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-driving { background-color: rgba(74, 222, 128, 0.15); color: var(--success-color); }
+        .status-cornering { background-color: rgba(251, 191, 36, 0.15); color: var(--warning-color); }
+        .status-traffic { background-color: rgba(251, 191, 36, 0.25); color: #f59e0b; }
+        .status-speeding { background-color: rgba(248, 113, 113, 0.15); color: var(--danger-color); }
+        .status-stopped { background-color: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+        .status-parked { background-color: rgba(56, 189, 248, 0.15); color: var(--accent-color); }
+        .status-scheduled { background-color: rgba(251, 191, 36, 0.15); color: var(--warning-color); }
+        .status-replay { background-color: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+        /* Custom Leaflet overrides */
+        .leaflet-container {
+            background: var(--bg-primary) !important;
+        }
+        
+        .leaflet-bar {
+            border: 1px solid var(--border-color) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+        }
+        
+        .leaflet-bar a {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+        }
+
+        .leaflet-bar a:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Marker Rotating Icon Styling */
+        .vehicle-marker-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s linear;
+        }
+
+        .vehicle-marker-svg {
+            filter: drop-shadow(0px 0px 4px var(--marker-color));
+        }
+
+        .route-glow-active {
+            filter: drop-shadow(0 0 5px var(--accent-color));
+        }
+        
+        .route-glow-inactive {
+            opacity: 0.35;
+        }
+
+        /* Popups */
+        .leaflet-popup-content-wrapper {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .leaflet-popup-tip {
+            background-color: var(--bg-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h1><span>ITrack Control Panel</span></h1>
+                <p>Full-Stack Traccar Device Simulator</p>
+            </div>
+
+            <!-- Device List Section -->
+            <div class="card">
+                <div class="card-title">
+                    <span>Devices</span>
+                    <button class="btn-primary btn-sm" id="btn-show-add" style="padding: 2px 8px;">+ Add</button>
+                </div>
+                <div class="device-list" id="device-list-container">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Form Section (Toggled) -->
+            <div class="card" id="add-device-card" style="display: none;">
+                <div class="card-title" id="form-title">Add New Device</div>
+                <form id="device-form">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="device-id">Device ID / Identifier</label>
+                            <input type="text" id="device-id" required placeholder="e.g. BUS001">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicle-type">Vehicle Type</label>
+                            <select id="vehicle-type">
+                                <option value="car">Car (Standard)</option>
+                                <option value="motorcycle">Motorcycle (Fast Corner)</option>
+                                <option value="bus">Bus (Passenger Stops)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="report-interval">Report Interval (sec)</label>
+                            <input type="number" id="report-interval" value="30" min="5" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label>Start Location</label>
+                                <button type="button" class="btn-secondary btn-sm" id="btn-pick-start" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="start-lat" step="any" required placeholder="Latitude" style="flex: 1;">
+                                <input type="number" id="start-lon" step="any" required placeholder="Longitude" style="flex: 1;">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label>End Location</label>
+                                <button type="button" class="btn-secondary btn-sm" id="btn-pick-end" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="end-lat" step="any" required placeholder="Latitude" style="flex: 1;">
+                                <input type="number" id="end-lon" step="any" required placeholder="Longitude" style="flex: 1;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="min-speed">Min Speed (km/h)</label>
+                            <input type="number" id="min-speed" value="20" min="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-speed">Max Speed (km/h)</label>
+                            <input type="number" id="max-speed" value="80" min="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="avg-speed">Avg Speed (km/h)</label>
+                            <input type="number" id="avg-speed" value="50" min="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="start-time">Start Time (Optional)</label>
+                            <input type="text" id="start-time" placeholder="HH:MM e.g. 10:45">
+                        </div>
+                        <div class="form-group">
+                            <label for="trip-type">Trip Type</label>
+                            <select id="trip-type">
+                                <option value="single">Single Trip</option>
+                                <option value="round">Round Trip</option>
+                                <option value="nonstop">24 Hours Nonstop</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width" id="return-time-group" style="display: none;">
+                            <label for="return-time">Return Time (for Round Trip)</label>
+                            <input type="text" id="return-time" placeholder="HH:MM e.g. 16:00">
+                        </div>
+                        <div class="form-group full-width" id="nonstop-layover-group" style="display: none;">
+                            <label>Nonstop Layover Range (Minutes)</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="nonstop-layover-min" value="60" min="0" placeholder="Min (e.g. 60)" style="flex: 1;">
+                                <input type="number" id="nonstop-layover-max" value="60" min="0" placeholder="Max (e.g. 120)" style="flex: 1;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-row" style="margin-top: 16px;">
+                        <button type="submit" class="btn-primary">Save & Start</button>
+                        <button type="button" class="btn-secondary" id="btn-cancel-add">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Telemetry Console Section -->
+            <div class="card" id="telemetry-card">
+                <div class="card-title">Live Telemetry</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Active Vehicle</span>
+                        <div class="info-value" id="telemetry-active-name" style="color: var(--accent-color);">None Selected</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">State</span>
+                        <div class="info-value" id="telemetry-state">-</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Speed</span>
+                        <div class="info-value" id="telemetry-speed">0 km/h</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Coordinates</span>
+                        <div class="info-value mono" id="telemetry-coords">-0.00000, 0.00000</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Bearing</span>
+                        <div class="info-value" id="telemetry-bearing">0°</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Distance Traveled</span>
+                        <div class="info-value" id="telemetry-dist">0.00 / 0.00 km</div>
+                    </div>
+                    <div class="info-item" style="grid-column: span 2;">
+                        <span class="info-label">Progress</span>
+                        <div class="info-value" id="telemetry-progress">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Info & Target Host -->
+            <div class="card" style="margin-top: auto; border-top: 1px solid var(--border-color); margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                    <div class="card-title" style="margin-bottom: 6px;">Server Status</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Target Traccar:</span>
+                            <strong id="server-host-label" style="color: var(--accent-color);">checking...</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>API Server:</span>
+                            <strong style="color: var(--success-color);">ONLINE</strong>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-danger btn-sm" id="btn-logout" style="width: 100%; font-weight: 600; padding: 6px 12px; margin-top: 5px;">🔓 Log Out</button>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script>
+        const API_BASE = ""; // Same origin
+
+        // Initialize Leaflet Map
+        const map = L.map('map', { zoomControl: false }).setView([-7.15, 111.5], 8);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Dark Theme Map Tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        let devicesList = [];
+        let activeDeviceID = null;
+        let mapMarkers = {}; // device_id -> L.marker
+        let routePaths = {}; // device_id -> L.polyline
+        
+        // Custom rotated vehicle SVG icons
+        const VEHICLE_COLORS = {
+            car: '#fb923c',      // Orange
+            motorcycle: '#38bdf8', // Light Blue
+            bus: '#f87171'       // Red
+        };
+
+        const VEHICLE_SVGS = {
+            car: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8L18.92 6.01zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
+            motorcycle: 'M19 9.5c0-.82.68-1.5 1.5-1.5s1.5.68 1.5 1.5-.68 1.5-1.5 1.5-1.5-.68-1.5-1.5zM20.5 4c-1.1 0-2 .9-2 2v2.3l-5.3 4.2H8c-.8 0-1.5.7-1.5 1.5v.5c0 .8.7 1.5 1.5 1.5h1.2l-1 2.3H5c-.8 0-1.5.7-1.5 1.5v.5c0 .8.7 1.5 1.5 1.5h15c1.1 0 2-.9 2-2v-9l-3.5-4.3z',
+            bus: 'M4 16c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5v-13C20 2.17 19.33 1.5 18.5 1.5h-13C4.67 1.5 4 2.17 4 3.17v13.01zM7.5 5h3v2.5h-3V5zm0 4.5h3v2.5h-3V9.5zm7.5-4.5h3v2.5h-3V5zm0 4.5h3v2.5h-3V9.5z'
+        };
+
+        function getVehicleIcon(type, bearing) {
+            const color = VEHICLE_COLORS[type] || '#fff';
+            const svgPath = VEHICLE_SVGS[type] || VEHICLE_SVGS['car'];
+            return L.divIcon({
+                className: 'vehicle-marker-container',
+                html: `
+                    <svg class="vehicle-marker-svg" width="34" height="34" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(${bearing}deg); --marker-color: ${color}">
+                        <circle cx="15" cy="15" r="13" fill="#0f172a" stroke="${color}" stroke-width="2.5" />
+                        <g transform="translate(6, 6) scale(0.65)">
+                            <path d="${svgPath}" fill="${color}" />
+                        </g>
+                    </svg>
+                `,
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            });
+        }
+
+        // Map Coordinate Picking State
+        let pickingMode = null; // 'start' or 'end'
+        let pickedStartMarker = null;
+        let pickedEndMarker = null;
+
+        // Toggle Form
+        document.getElementById('btn-show-add').addEventListener('click', () => {
+            const card = document.getElementById('add-device-card');
+            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('device-form').reset();
+            document.getElementById('device-id').disabled = false;
+            document.getElementById('form-title').textContent = "Add New Device";
+            document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            document.getElementById('return-time-group').style.display = 'none';
+            document.getElementById('nonstop-layover-group').style.display = 'none';
+            clearPickedMarkers();
+        });
+
+        document.getElementById('btn-cancel-add').addEventListener('click', () => {
+            document.getElementById('add-device-card').style.display = 'none';
+            document.getElementById('device-id').disabled = false;
+            document.getElementById('form-title').textContent = "Add New Device";
+            document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            clearPickedMarkers();
+        });
+
+        function clearPickedMarkers() {
+            if (pickedStartMarker) {
+                map.removeLayer(pickedStartMarker);
+                pickedStartMarker = null;
+            }
+            if (pickedEndMarker) {
+                map.removeLayer(pickedEndMarker);
+                pickedEndMarker = null;
+            }
+            pickingMode = null;
+            map.getContainer().style.cursor = '';
+            document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
+            document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
+        }
+
+        // Map Click Picker Event
+        map.on('click', (e) => {
+            if (!pickingMode) return;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            if (pickingMode === 'start') {
+                document.getElementById('start-lat').value = lat.toFixed(6);
+                document.getElementById('start-lon').value = lng.toFixed(6);
+                if (pickedStartMarker) map.removeLayer(pickedStartMarker);
+                pickedStartMarker = L.marker([lat, lng]).addTo(map).bindPopup("Picked Start Location").openPopup();
+                document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
+            } else if (pickingMode === 'end') {
+                document.getElementById('end-lat').value = lat.toFixed(6);
+                document.getElementById('end-lon').value = lng.toFixed(6);
+                if (pickedEndMarker) map.removeLayer(pickedEndMarker);
+                pickedEndMarker = L.marker([lat, lng]).addTo(map).bindPopup("Picked End Location").openPopup();
+                document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
+            }
+            pickingMode = null;
+            map.getContainer().style.cursor = '';
+        });
+
+        document.getElementById('btn-pick-start').addEventListener('click', (e) => {
+            pickingMode = 'start';
+            map.getContainer().style.cursor = 'crosshair';
+            e.target.textContent = "📍 Click on Map...";
+            document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
+        });
+
+        document.getElementById('btn-pick-end').addEventListener('click', (e) => {
+            pickingMode = 'end';
+            map.getContainer().style.cursor = 'crosshair';
+            e.target.textContent = "📍 Click on Map...";
+            document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
+        });
+
+        document.getElementById('trip-type').addEventListener('change', (e) => {
+            const val = e.target.value;
+            document.getElementById('return-time-group').style.display = val === 'round' ? 'block' : 'none';
+            document.getElementById('nonstop-layover-group').style.display = val === 'nonstop' ? 'block' : 'none';
+            
+            if (val !== 'round') {
+                document.getElementById('return-time').value = '';
+            }
+            if (val !== 'nonstop') {
+                document.getElementById('nonstop-layover-min').value = '60';
+                document.getElementById('nonstop-layover-max').value = '60';
+            }
+        });
+
+        // Load all devices from config
+        function fetchDevices() {
+            fetch(`${API_BASE}/api/devices`)
+                .then(r => {
+                    if (r.status === 401) {
+                        window.location.href = '/login.html';
+                        return null;
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    document.getElementById('server-host-label').textContent = data.traccar.host;
+                    devicesList = data.devices;
+                    renderDeviceList();
+                    
+                    // Lazy load geojsons for routes
+                    devicesList.forEach(dev => {
+                        loadRouteGeoJSON(dev.id);
+                    });
+                })
+                .catch(err => console.error("Error fetching devices:", err));
+        }
+
+        // Render Sidebar Device List
+        function renderDeviceList() {
+            const container = document.getElementById('device-list-container');
+            container.innerHTML = '';
+            
+            if (devicesList.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 12px;">No devices configured. Click '+ Add' to create one.</div>`;
+                return;
+            }
+            
+            devicesList.forEach(dev => {
+                const item = document.createElement('div');
+                item.className = `device-item ${dev.id === activeDeviceID ? 'active' : ''}`;
+                
+                const isRunning = dev.status === "Running";
+                const badgeClass = isRunning ? "badge-running" : "badge-stopped";
+                const scheduleBadge = dev.start_time ? `<span class="badge badge-scheduled badge-status" style="margin-left: 5px;">${dev.start_time}</span>` : '';
+                
+                item.innerHTML = `
+                    <div class="device-info">
+                        <div class="device-name">
+                            <span>${dev.id}</span>
+                            <span class="badge ${badgeClass} badge-status">${dev.status}</span>
+                            ${scheduleBadge}
+                        </div>
+                        <div class="device-meta">${dev.type.toUpperCase()} | ${dev.interval}s interval</div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); toggleDevice('${dev.id}', ${isRunning})">
+                            ${isRunning ? 'Pause' : 'Start'}
+                        </button>
+                        <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editDevice('${dev.id}')">Edit</button>
+                        <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteDevice('${dev.id}')">Delete</button>
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => selectDevice(dev.id));
+                container.appendChild(item);
+            });
+        }
+
+        // Load route GeoJSON path from server static routes folder
+        function loadRouteGeoJSON(devId) {
+            const safeName = devId.toLowerCase().replace(/ /g, '_');
+            const path = `${API_BASE}/routes/${safeName}.geojson`;
+            
+            // Avoid reloading if already plotted
+            if (routePaths[devId]) return;
+
+            fetch(path)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (!data) return;
+                    
+                    // GeoJSON coordinates are [lon, lat], map expects [lat, lon]
+                    const latLons = data.geometry.coordinates.map(c => [c[1], c[0]]);
+                    const dev = devicesList.find(d => d.id === devId);
+                    const type = dev ? dev.type : 'car';
+                    const color = VEHICLE_COLORS[type] || '#94a3b8';
+                    const poly = L.polyline(latLons, {
+                        color: color,
+                        weight: 3.5,
+                        opacity: 0.45,
+                        className: 'route-glow-inactive'
+                    }).addTo(map);
+                    
+                    routePaths[devId] = poly;
+                    
+                    // If active, highlight
+                    if (devId === activeDeviceID) {
+                        poly.setStyle({
+                            color: 'var(--accent-color)',
+                            weight: 5,
+                            opacity: 0.85,
+                            className: 'route-glow-active'
+                        });
+                    }
+                })
+                .catch(err => {});
+        }
+
+        // Selection handling
+        function selectDevice(devId) {
+            activeDeviceID = devId;
+            renderDeviceList();
+            
+            // Highlight route paths
+            Object.keys(routePaths).forEach(id => {
+                const poly = routePaths[id];
+                if (id === devId) {
+                    poly.setStyle({
+                        color: 'var(--accent-color)',
+                        weight: 5,
+                        opacity: 0.85,
+                        className: 'route-glow-active'
+                    });
+                    map.fitBounds(poly.getBounds(), { padding: [50, 50] });
+                } else {
+                    const dev = devicesList.find(d => d.id === id);
+                    const color = dev ? VEHICLE_COLORS[dev.type] : '#94a3b8';
+                    poly.setStyle({
+                        color: color,
+                        weight: 3.5,
+                        opacity: 0.45,
+                        className: 'route-glow-inactive'
+                    });
+                }
+            });
+
+            // Focus marker
+            if (mapMarkers[devId]) {
+                mapMarkers[devId].openPopup();
+            }
+        }
+
+        // Toggle Running state
+        window.toggleDevice = function(devId, isRunning) {
+            const endpoint = isRunning ? 'stop' : 'start';
+            fetch(`${API_BASE}/api/devices/${devId}/${endpoint}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    fetchDevices();
+                })
+                .catch(err => console.error(err));
+        };
+
+        // Delete device configuration
+        window.deleteDevice = function(devId) {
+            if (!confirm(`Are you sure you want to delete ${devId}?`)) return;
+            fetch(`${API_BASE}/api/devices/${devId}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(res => {
+                    if (mapMarkers[devId]) map.removeLayer(mapMarkers[devId]);
+                    if (routePaths[devId]) map.removeLayer(routePaths[devId]);
+                    delete mapMarkers[devId];
+                    delete routePaths[devId];
+                    if (activeDeviceID === devId) activeDeviceID = null;
+                    fetchDevices();
+                })
+                .catch(err => console.error(err));
+        };
+
+        // Edit device configuration (form population)
+        window.editDevice = function(devId) {
+            const dev = devicesList.find(d => d.id === devId);
+            if (!dev) return;
+            
+            document.getElementById('add-device-card').style.display = 'block';
+            
+            document.getElementById('device-id').value = dev.id;
+            document.getElementById('device-id').disabled = true;
+            document.getElementById('vehicle-type').value = dev.type;
+            document.getElementById('report-interval').value = dev.interval;
+            document.getElementById('start-lat').value = dev.start.lat;
+            document.getElementById('start-lon').value = dev.start.lon;
+            document.getElementById('end-lat').value = dev.end.lat;
+            document.getElementById('end-lon').value = dev.end.lon;
+            document.getElementById('min-speed').value = dev.min_speed;
+            document.getElementById('avg-speed').value = dev.avg_speed;
+            document.getElementById('max-speed').value = dev.max_speed;
+            document.getElementById('start-time').value = dev.start_time || '';
+            document.getElementById('trip-type').value = dev.trip_type || 'single';
+            document.getElementById('return-time').value = dev.return_time || '';
+            document.getElementById('nonstop-layover-min').value = dev.nonstop_layover_min || 60;
+            document.getElementById('nonstop-layover-max').value = dev.nonstop_layover_max || 60;
+            
+            const tripType = dev.trip_type || 'single';
+            document.getElementById('return-time-group').style.display = tripType === 'round' ? 'block' : 'none';
+            document.getElementById('nonstop-layover-group').style.display = tripType === 'nonstop' ? 'block' : 'none';
+            
+            document.getElementById('form-title').textContent = `Edit Device: ${dev.id}`;
+            document.querySelector('#device-form button[type="submit"]').textContent = "Save Changes";
+            
+            document.getElementById('add-device-card').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        // Add/Edit Submit Form
+        document.getElementById('device-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                id: document.getElementById('device-id').value.trim(),
+                type: document.getElementById('vehicle-type').value,
+                interval: parseInt(document.getElementById('report-interval').value),
+                start: {
+                    lat: parseFloat(document.getElementById('start-lat').value),
+                    lon: parseFloat(document.getElementById('start-lon').value)
+                },
+                end: {
+                    lat: parseFloat(document.getElementById('end-lat').value),
+                    lon: parseFloat(document.getElementById('end-lon').value)
+                },
+                min_speed: parseInt(document.getElementById('min-speed').value),
+                avg_speed: parseInt(document.getElementById('avg-speed').value),
+                max_speed: parseInt(document.getElementById('max-speed').value),
+                start_time: document.getElementById('start-time').value.trim(),
+                trip_type: document.getElementById('trip-type').value,
+                return_time: document.getElementById('return-time').value.trim(),
+                nonstop_layover_min: parseInt(document.getElementById('nonstop-layover-min').value || 60),
+                nonstop_layover_max: parseInt(document.getElementById('nonstop-layover-max').value || 60)
+            };
+
+            fetch(`${API_BASE}/api/devices`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('add-device-card').style.display = 'none';
+                document.getElementById('device-id').disabled = false;
+                document.getElementById('form-title').textContent = "Add New Device";
+                document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+                clearPickedMarkers();
+                fetchDevices();
+                setTimeout(() => {
+                    selectDevice(payload.id);
+                }, 1000);
+            })
+            .catch(err => alert("Error saving device configuration. Check inputs."));
+        });
+
+        // Real-Time Telemetry Poll
+        function pollTelemetry() {
+            fetch(`${API_BASE}/api/status`)
+                .then(r => {
+                    if (r.status === 401) {
+                        window.location.href = '/login.html';
+                        return null;
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    updateMapMarkers(data);
+                    updateTelemetryUI(data);
+                    
+                    // Automatically retry loading missing routes
+                    devicesList.forEach(dev => {
+                        if (!routePaths[dev.id]) {
+                            loadRouteGeoJSON(dev.id);
+                        }
+                    });
+                })
+                .catch(err => console.error("Error polling telemetry:", err));
+        }
+
+        // Update Markers on map
+        function updateMapMarkers(telemetry) {
+            Object.keys(telemetry).forEach(id => {
+                const tel = telemetry[id];
+                const dev = devicesList.find(d => d.id === id);
+                const type = dev ? dev.type : 'car';
+                
+                const latLng = [tel.lat, tel.lon];
+                const bearing = tel.bearing;
+                
+                const popupContent = `
+                    <div style="font-size: 0.85rem; font-weight: 500;">
+                        <strong style="color: var(--accent-color); font-size: 0.95rem;">${id}</strong><br/>
+                        State: <span class="status-badge status-${tel.state.toLowerCase()}">${tel.state}</span><br/>
+                        Speed: <strong>${tel.speed} km/h</strong><br/>
+                        Progress: <strong>${tel.progress}%</strong>
+                    </div>
+                `;
+
+                if (mapMarkers[id]) {
+                    mapMarkers[id].setLatLng(latLng);
+                    mapMarkers[id].setIcon(getVehicleIcon(type, bearing));
+                    mapMarkers[id].getPopup().setContent(popupContent);
+                } else {
+                    // Create new marker
+                    const marker = L.marker(latLng, {
+                        icon: getVehicleIcon(type, bearing)
+                    }).addTo(map).bindPopup(popupContent);
+                    
+                    marker.on('click', () => selectDevice(id));
+                    mapMarkers[id] = marker;
+                }
+            });
+
+            // Remove markers for deleted devices
+            Object.keys(mapMarkers).forEach(id => {
+                if (!telemetry[id]) {
+                    map.removeLayer(mapMarkers[id]);
+                    delete mapMarkers[id];
+                }
+            });
+        }
+
+        // Update Telemetry Console
+        function updateTelemetryUI(telemetry) {
+            if (!activeDeviceID || !telemetry[activeDeviceID]) {
+                // Clear console
+                document.getElementById('telemetry-active-name').textContent = "None Selected";
+                document.getElementById('telemetry-state').innerHTML = '-';
+                document.getElementById('telemetry-speed').textContent = '0 km/h';
+                document.getElementById('telemetry-coords').textContent = '-0.00000, 0.00000';
+                document.getElementById('telemetry-bearing').textContent = '0°';
+                document.getElementById('telemetry-dist').textContent = '0.00 / 0.00 km';
+                document.getElementById('telemetry-progress').textContent = '0%';
+                return;
+            }
+
+            const tel = telemetry[activeDeviceID];
+            document.getElementById('telemetry-active-name').textContent = activeDeviceID;
+            
+            const badgeClass = `status-${tel.state.toLowerCase() === 'offline_replay' ? 'replay' : tel.state.toLowerCase()}`;
+            document.getElementById('telemetry-state').innerHTML = `<span class="status-badge ${badgeClass}">${tel.state}</span>`;
+            
+            document.getElementById('telemetry-speed').textContent = `${tel.speed} km/h`;
+            document.getElementById('telemetry-coords').textContent = `${tel.lat.toFixed(5)}, ${tel.lon.toFixed(5)}`;
+            document.getElementById('telemetry-bearing').textContent = `${Math.round(tel.bearing)}°`;
+            
+            const distTraveled = (tel.distance_traveled / 1000).toFixed(2);
+            const totalDist = (tel.total_distance / 1000).toFixed(2);
+            document.getElementById('telemetry-dist').textContent = `${distTraveled} / ${totalDist} km`;
+            document.getElementById('telemetry-progress').textContent = `${tel.progress}%`;
+        }
+
+        // Initialize App
+        fetchDevices();
+        setInterval(pollTelemetry, 3000); // poll every 3 seconds
+
+        // Logout Click Handler
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            fetch('/api/logout', { method: 'POST' })
+                .then(r => {
+                    window.location.href = '/login.html';
+                })
+                .catch(err => {
+                    window.location.href = '/login.html';
+                });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITrack Simulator | Login</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.25);
+            --danger-color: #f87171;
+            --danger-glow: rgba(248, 113, 113, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: 1;
+            opacity: 0.15;
+            animation: pulse 10s infinite alternate;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background-color: var(--accent-color);
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob-2 {
+            width: 500px;
+            height: 500px;
+            background-color: #8b5cf6; /* Purple */
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 2s;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(30px, 30px); }
+        }
+
+        /* Glassmorphic Container */
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header Design */
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .header h1 span {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Form Grouping */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            background-color: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        /* Alert/Error Banner */
+        .error-alert {
+            background-color: var(--danger-glow);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            color: var(--danger-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        /* Button design */
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            background-color: var(--accent-color);
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            box-shadow: 0 0 16px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Footer styling */
+        .footer {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: -10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-container">
+        
+        <div class="header">
+            <h1><span>ITrack Control Panel</span></h1>
+            <p>Sign in to access Traccar Device Simulator</p>
+        </div>
+
+        <div class="error-alert" id="login-error">
+            <span>⚠️</span>
+            <span id="error-message">Invalid username or password</span>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required autocomplete="username" placeholder="e.g. admin">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••">
+            </div>
+
+            <button type="submit" id="btn-submit">Sign In</button>
+        </form>
+
+        <div class="footer">
+            &copy; 2026 Ihsan Traccar Device Simulator
+        </div>
+
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-submit');
+            const errBanner = document.getElementById('login-error');
+            const errMsg = document.getElementById('error-message');
+            
+            // UI Feedback
+            btn.disabled = true;
+            btn.textContent = "Signing In...";
+            errBanner.style.display = 'none';
+            
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value
+            };
+            
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(async r => {
+                const data = await r.json();
+                if (!r.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+                return data;
+            })
+            .then(data => {
+                // Success redirect
+                window.location.href = '/';
+            })
+            .catch(err => {
+                // Reset UI & Show Error
+                btn.disabled = false;
+                btn.textContent = "Sign In";
+                errMsg.textContent = err.message;
+                errBanner.style.display = 'flex';
+            });
+        });
+    </script>
+</body>
+</html>
