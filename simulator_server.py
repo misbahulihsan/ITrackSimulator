@@ -757,8 +757,9 @@ def add_device():
     cfg["devices"] = devices
     save_config(cfg)
     
-    # Start it by default
-    start_simulation_thread(new_device, cfg["traccar"]["host"])
+    # Start it by default only if global service is running
+    if database.get_setting("service_status", "running") == "running":
+        start_simulation_thread(new_device, cfg["traccar"]["host"])
     
     return jsonify({"success": True, "device": new_device})
 
@@ -794,6 +795,9 @@ def delete_device(device_id):
 
 @app.route('/api/devices/<device_id>/start', methods=['POST'])
 def start_device(device_id):
+    if database.get_setting("service_status", "running") == "stopped":
+        return jsonify({"error": "Global service is stopped. Start it first."}), 400
+        
     cfg = load_config()
     devices = cfg.get("devices", [])
     
@@ -818,6 +822,40 @@ def stop_device(device_id):
 def get_status():
     with telemetry_lock:
         return jsonify(telemetry_data)
+
+@app.route('/api/service/status', methods=['GET'])
+def get_service_status():
+    status = database.get_setting("service_status", "running")
+    return jsonify({"status": status})
+
+@app.route('/api/service/start', methods=['POST'])
+def start_service():
+    database.set_setting("service_status", "running")
+    touch_all_states()
+    start_all_simulations()
+    return jsonify({"success": True})
+
+@app.route('/api/service/stop', methods=['POST'])
+def stop_service():
+    database.set_setting("service_status", "stopped")
+    stop_all_simulations()
+    return jsonify({"success": True})
+
+def touch_all_states():
+    now = time.time()
+    if os.path.exists(STATE_DIR):
+        for filename in os.listdir(STATE_DIR):
+            if filename.endswith("_state.json"):
+                path = os.path.join(STATE_DIR, filename)
+                try:
+                    with open(path, "r") as sf:
+                        state_data = json.load(sf)
+                    state_data["last_updated_time"] = now
+                    with open(path, "w") as sf:
+                        json.dump(state_data, sf, indent=2)
+                    print(f"Touched state file: {filename} to skip catchup.")
+                except Exception as e:
+                    print(f"Error touching state file {filename}: {e}")
 
 # Helper thread managers
 def start_simulation_thread(device, traccar_host):
@@ -870,7 +908,13 @@ def stop_all_simulations():
         stop_simulation_thread(key)
 
 if __name__ == '__main__':
-    start_all_simulations()
+    status = database.get_setting("service_status", "running")
+    if status == "running":
+        print("Starting all simulations on startup...")
+        start_all_simulations()
+    else:
+        print("Service is stopped. Not starting simulations on startup.")
+        
     try:
         app.run(host='0.0.0.0', port=8083, debug=False, threaded=True)
     finally:

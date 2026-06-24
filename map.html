@@ -61,6 +61,13 @@
             z-index: 1000;
             box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
             overflow-y: auto;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s;
+        }
+
+        #app-container.sidebar-collapsed #sidebar {
+            width: 0;
+            border-right: none;
+            overflow: hidden;
         }
 
         #map-container {
@@ -213,6 +220,110 @@
 
         .btn-danger:hover {
             background-color: rgba(248, 113, 113, 0.25);
+        }
+
+        .btn-success {
+            background-color: rgba(74, 222, 128, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+
+        .btn-success:hover {
+            background-color: rgba(74, 222, 128, 0.25);
+        }
+
+        .btn-xs {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+        }
+
+        .btn-success:disabled, .btn-danger:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Sidebar Toggle Button */
+        #sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            left: calc(var(--sidebar-width) - 1px);
+            transform: translateY(-50%);
+            z-index: 1010;
+            width: 20px;
+            height: 50px;
+            border-radius: 0 8px 8px 0;
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-left: none;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, color 0.2s;
+            outline: none;
+        }
+
+        #sidebar-toggle:hover {
+            background-color: var(--accent-color);
+            color: #0f172a;
+        }
+
+        #app-container.sidebar-collapsed #sidebar-toggle {
+            left: 0;
+        }
+
+        #sidebar-toggle #toggle-icon {
+            font-size: 0.7rem;
+            transition: transform 0.3s;
+        }
+
+        /* Global Service Status Control */
+        .global-service-control {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+            box-shadow: 0 0 6px rgba(148, 163, 184, 0.5);
+            transition: all 0.3s;
+        }
+
+        .status-dot.running {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        .status-dot.stopped {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 8px var(--danger-color);
+        }
+
+        .service-actions {
+            display: flex;
+            gap: 6px;
         }
 
         .btn-sm {
@@ -405,6 +516,18 @@
             <div class="sidebar-header">
                 <h1><span>ITrack Control Panel</span></h1>
                 <p>Full-Stack Traccar Device Simulator</p>
+                
+                <!-- Global Service Status Control -->
+                <div class="global-service-control">
+                    <div class="status-indicator">
+                        <span class="status-dot" id="service-status-dot"></span>
+                        <span class="status-text" id="service-status-text">Service Loading...</span>
+                    </div>
+                    <div class="service-actions">
+                        <button class="btn-success btn-xs" id="btn-service-start">▶ Start</button>
+                        <button class="btn-danger btn-xs" id="btn-service-stop">⏸ Stop</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Device List Section -->
@@ -555,6 +678,10 @@
                 <button class="btn-danger btn-sm" id="btn-logout" style="width: 100%; font-weight: 600; padding: 6px 12px; margin-top: 5px;">🔓 Log Out</button>
             </div>
         </div>
+
+        <button id="sidebar-toggle" title="Toggle Sidebar">
+            <span id="toggle-icon">◀</span>
+        </button>
 
         <div id="map-container">
             <div id="map"></div>
@@ -1051,7 +1178,91 @@
             document.getElementById('telemetry-progress').textContent = `${tel.progress}%`;
         }
 
+        // Sidebar collapse toggle
+        const appContainer = document.getElementById('app-container');
+        const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        sidebarToggleBtn.addEventListener('click', () => {
+            appContainer.classList.toggle('sidebar-collapsed');
+            if (appContainer.classList.contains('sidebar-collapsed')) {
+                toggleIcon.textContent = '▶';
+            } else {
+                toggleIcon.textContent = '◀';
+            }
+            
+            // Invalidate Leaflet map size to adjust to new window geometry
+            if (map) {
+                map.invalidateSize();
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 310);
+            }
+        });
+
+        // Global Service Status Management
+        const serviceStatusDot = document.getElementById('service-status-dot');
+        const serviceStatusText = document.getElementById('service-status-text');
+        const btnServiceStart = document.getElementById('btn-service-start');
+        const btnServiceStop = document.getElementById('btn-service-stop');
+
+        function updateServiceUI(status) {
+            if (status === 'running') {
+                serviceStatusDot.className = 'status-dot running';
+                serviceStatusText.textContent = 'Service Started';
+                btnServiceStart.disabled = true;
+                btnServiceStop.disabled = false;
+            } else {
+                serviceStatusDot.className = 'status-dot stopped';
+                serviceStatusText.textContent = 'Service Stopped';
+                btnServiceStart.disabled = false;
+                btnServiceStop.disabled = true;
+            }
+        }
+
+        function fetchServiceStatus() {
+            fetch('/api/service/status')
+                .then(r => r.json())
+                .then(data => {
+                    updateServiceUI(data.status);
+                })
+                .catch(err => console.error('Error fetching service status:', err));
+        }
+
+        btnServiceStart.addEventListener('click', () => {
+            btnServiceStart.disabled = true;
+            fetch('/api/service/start', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        updateServiceUI('running');
+                        fetchDevices(); // refresh device list status
+                    }
+                })
+                .catch(err => {
+                    console.error('Error starting service:', err);
+                    btnServiceStart.disabled = false;
+                });
+        });
+
+        btnServiceStop.addEventListener('click', () => {
+            btnServiceStop.disabled = true;
+            fetch('/api/service/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        updateServiceUI('stopped');
+                        fetchDevices(); // refresh device list status
+                    }
+                })
+                .catch(err => {
+                    console.error('Error stopping service:', err);
+                    btnServiceStop.disabled = false;
+                });
+        });
+
         // Initialize App
+        fetchServiceStatus();
         fetchDevices();
         setInterval(pollTelemetry, 3000); // poll every 3 seconds
 
