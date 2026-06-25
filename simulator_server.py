@@ -487,7 +487,7 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
                     target_speed = random.randint(max_speed - 5, max_speed + 5)
                     status_desc = "SPEEDING"
                 elif roll < speeding_chance + 0.15:
-                    target_speed = random.randint(min_speed, avg_speed - 10)
+                    target_speed = random.randint(min_speed, max(min_speed, avg_speed - 10))
                     status_desc = "TRAFFIC"
                 else:
                     target_speed = random.randint(avg_speed - 5, avg_speed + 5)
@@ -583,6 +583,8 @@ def run_simulation(device, traccar_host, shutdown_event):
     
     trip_type = device.get("trip_type", "single")
     rit_label = device.get("rit_label", "RIT-A")
+    rita_depart_str = device.get("rita_depart", "")
+    ritb_depart_str = device.get("ritb_depart", "")
     
     # Backward compatibility mapping
     normalized_trip_type = trip_type
