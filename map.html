@@ -505,6 +505,15 @@
             background-color: rgba(255, 255, 255, 0.05) !important;
         }
 
+        .leaflet-control-layers {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 8px !important;
+            font-family: inherit !important;
+        }
+
         /* Marker Rotating Icon Styling */
         .vehicle-marker-container {
             display: flex;
@@ -1064,12 +1073,36 @@
         const map = L.map('map', { zoomControl: false }).setView([-7.15, 111.5], 8);
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Dark Theme Map Tiles
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Setup Map Basemaps (Dark and Light Themes)
+        const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 20
-        }).addTo(map);
+        });
+
+        const lightMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        const voyagerMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Add Dark Map as default
+        darkMap.addTo(map);
+
+        const baseMaps = {
+            "Dark Theme": darkMap,
+            "Light Theme (Positron)": lightMap,
+            "Light Theme (Voyager)": voyagerMap
+        };
+
+        // Add layer switcher control
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
         let devicesList = [];
         let activeDeviceID = null;
