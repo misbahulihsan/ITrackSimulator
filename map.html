@@ -2035,8 +2035,9 @@
                     }
                     data.forEach(run => {
                         const tr = document.createElement('tr');
-                        const statusBadgeClass = (run.status || '').toLowerCase() === 'running' ? 'rep-status-running' : 'rep-status-completed';
-                        const statusText = run.status || 'COMPLETED';
+                        const isRunning = (run.status || '').toLowerCase() === 'running';
+                        const statusBadgeClass = isRunning ? 'rep-status-running' : 'rep-status-completed';
+                        const statusText = isRunning ? 'On Going' : 'Complete';
                         
                         const dev = devicesList.find(d => d.id === run.device_id);
                         const displayName = dev && dev.name ? `${dev.name} (${run.device_id})` : run.device_id;
