@@ -54,8 +54,8 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     
-    # Add columns for RIT scheduling, name, waypoints, and route_mode
-    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive", "name", "waypoints", "route_mode"]:
+    # Add columns for RIT scheduling, name, waypoints, route_mode, and rit_label
+    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive", "name", "waypoints", "route_mode", "rit_label"]:
         try:
             cursor.execute(f"ALTER TABLE devices ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
@@ -193,6 +193,11 @@ def get_devices():
         except (IndexError, KeyError, sqlite3.OperationalError):
             route_mode = "direction"
             
+        try:
+            rit_label = r["rit_label"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            rit_label = "RIT-A"
+            
         devices.append({
             "id": r["id"],
             "name": name or "",
@@ -213,7 +218,8 @@ def get_devices():
             "ritb_depart": ritb_depart or "",
             "ritb_arrive": ritb_arrive or "",
             "waypoints": waypoints,
-            "route_mode": route_mode or "direction"
+            "route_mode": route_mode or "direction",
+            "rit_label": rit_label or "RIT-A"
         })
     return devices
 
@@ -259,6 +265,11 @@ def get_device(device_id):
         except (IndexError, KeyError, sqlite3.OperationalError):
             route_mode = "direction"
             
+        try:
+            rit_label = r["rit_label"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            rit_label = "RIT-A"
+            
         return {
             "id": r["id"],
             "name": name or "",
@@ -279,7 +290,8 @@ def get_device(device_id):
             "ritb_depart": ritb_depart or "",
             "ritb_arrive": ritb_arrive or "",
             "waypoints": waypoints,
-            "route_mode": route_mode or "direction"
+            "route_mode": route_mode or "direction",
+            "rit_label": rit_label or "RIT-A"
         }
     return None
 
@@ -290,8 +302,8 @@ def add_device(dev):
     INSERT OR REPLACE INTO devices (
         id, name, type, start_lat, start_lon, end_lat, end_lon, 
         min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
-        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode, rit_label
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
         dev.get("name", ""),
@@ -314,7 +326,8 @@ def add_device(dev):
         dev.get("ritb_depart", ""),
         dev.get("ritb_arrive", ""),
         json.dumps(dev.get("waypoints", [])),
-        dev.get("route_mode", "direction")
+        dev.get("route_mode", "direction"),
+        dev.get("rit_label", "RIT-A")
     ))
     conn.commit()
     conn.close()
@@ -329,11 +342,15 @@ def delete_device(device_id):
 def log_rit_depart(device_id, rit_type, date, scheduled_depart, actual_depart):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM rit_runs WHERE device_id = ? AND rit_type = ? AND date = ?", (device_id, rit_type, date))
+    # Check if there is already an active RUNNING trip today for this device and RIT label
+    cursor.execute("""
+        SELECT id FROM rit_runs 
+        WHERE device_id = ? AND rit_type = ? AND date = ? AND status = 'RUNNING'
+    """, (device_id, rit_type, date))
     row = cursor.fetchone()
     if row:
         cursor.execute("""
-        UPDATE rit_runs SET actual_depart = ?, status = 'RUNNING' WHERE id = ?
+        UPDATE rit_runs SET actual_depart = ? WHERE id = ?
         """, (actual_depart, row["id"]))
     else:
         cursor.execute("""
@@ -346,17 +363,34 @@ def log_rit_depart(device_id, rit_type, date, scheduled_depart, actual_depart):
 def log_rit_arrive(device_id, rit_type, date, scheduled_arrive, actual_arrive):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM rit_runs WHERE device_id = ? AND rit_type = ? AND date = ?", (device_id, rit_type, date))
+    # Find the most recent RUNNING run for this device and RIT type to mark it completed
+    cursor.execute("""
+        SELECT id FROM rit_runs 
+        WHERE device_id = ? AND rit_type = ? AND status = 'RUNNING'
+        ORDER BY id DESC LIMIT 1
+    """, (device_id, rit_type))
     row = cursor.fetchone()
     if row:
         cursor.execute("""
         UPDATE rit_runs SET actual_arrive = ?, status = 'COMPLETED' WHERE id = ?
         """, (actual_arrive, row["id"]))
     else:
+        # Fallback to update any run from today or insert new completed run
         cursor.execute("""
-        INSERT INTO rit_runs (device_id, rit_type, date, scheduled_arrive, actual_arrive, status)
-        VALUES (?, ?, ?, ?, ?, 'COMPLETED')
-        """, (device_id, rit_type, date, scheduled_arrive, actual_arrive))
+            SELECT id FROM rit_runs 
+            WHERE device_id = ? AND rit_type = ? AND date = ?
+            ORDER BY id DESC LIMIT 1
+        """, (device_id, rit_type, date))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("""
+            UPDATE rit_runs SET actual_arrive = ?, status = 'COMPLETED' WHERE id = ?
+            """, (actual_arrive, row["id"]))
+        else:
+            cursor.execute("""
+            INSERT INTO rit_runs (device_id, rit_type, date, scheduled_arrive, actual_arrive, status)
+            VALUES (?, ?, ?, ?, ?, 'COMPLETED')
+            """, (device_id, rit_type, date, scheduled_arrive, actual_arrive))
     conn.commit()
     conn.close()
 

@@ -899,10 +899,14 @@
                             <label for="trip-type">Trip Type</label>
                             <select id="trip-type">
                                 <option value="single">Single Trip</option>
-                                <option value="rita">RIT-A Only (Outbound)</option>
-                                <option value="ritb">RIT-B Only (Inbound)</option>
-                                <option value="round">RIT-A & RIT-B (Round Trip)</option>
                                 <option value="nonstop">24 Hours Nonstop</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="rit-label">RIT Label</label>
+                            <select id="rit-label">
+                                <option value="RIT-A">RIT-A (Outbound)</option>
+                                <option value="RIT-B">RIT-B (Inbound)</option>
                             </select>
                         </div>
                         <!-- RIT Times Group -->
@@ -1106,17 +1110,28 @@
         let pickedEndMarker = null;
 
         // Toggle Form
-        function updateFormInputsVisibility(mode) {
-            const isRit = ['rita', 'ritb', 'round'].includes(mode);
-            document.getElementById('rit-times-group').style.display = isRit ? 'block' : 'none';
+        function updateFormInputsVisibility() {
+            const tripType = document.getElementById('trip-type').value;
+            const ritLabel = document.getElementById('rit-label').value;
             
-            document.getElementById('rita-depart-group').style.display = ['rita', 'round'].includes(mode) ? 'flex' : 'none';
-            document.getElementById('rita-arrive-group').style.display = ['rita', 'round'].includes(mode) ? 'flex' : 'none';
-            document.getElementById('ritb-depart-group').style.display = ['ritb', 'round'].includes(mode) ? 'flex' : 'none';
-            document.getElementById('ritb-arrive-group').style.display = ['ritb', 'round'].includes(mode) ? 'flex' : 'none';
+            document.getElementById('rit-times-group').style.display = 'block';
             
-            document.getElementById('start-time-group').style.display = ['single', 'nonstop'].includes(mode) ? 'flex' : 'none';
-            document.getElementById('nonstop-layover-group').style.display = mode === 'nonstop' ? 'block' : 'none';
+            if (tripType === 'single') {
+                document.getElementById('rita-depart-group').style.display = (ritLabel === 'RIT-A') ? 'flex' : 'none';
+                document.getElementById('rita-arrive-group').style.display = (ritLabel === 'RIT-A') ? 'flex' : 'none';
+                document.getElementById('ritb-depart-group').style.display = (ritLabel === 'RIT-B') ? 'flex' : 'none';
+                document.getElementById('ritb-arrive-group').style.display = (ritLabel === 'RIT-B') ? 'flex' : 'none';
+                document.getElementById('start-time-group').style.display = 'none';
+            } else {
+                // nonstop
+                document.getElementById('rita-depart-group').style.display = 'flex';
+                document.getElementById('rita-arrive-group').style.display = 'flex';
+                document.getElementById('ritb-depart-group').style.display = 'flex';
+                document.getElementById('ritb-arrive-group').style.display = 'flex';
+                document.getElementById('start-time-group').style.display = 'flex';
+            }
+            
+            document.getElementById('nonstop-layover-group').style.display = (tripType === 'nonstop') ? 'block' : 'none';
         }
 
         // Toggle Form
@@ -1129,7 +1144,9 @@
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
             document.getElementById('route-mode').value = 'direction';
             toggleRouteModeUI('direction');
-            updateFormInputsVisibility('single');
+            document.getElementById('trip-type').value = 'single';
+            document.getElementById('rit-label').value = 'RIT-A';
+            updateFormInputsVisibility();
             clearPickedMarkers();
         });
 
@@ -1140,6 +1157,9 @@
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
             document.getElementById('route-mode').value = 'direction';
             toggleRouteModeUI('direction');
+            document.getElementById('trip-type').value = 'single';
+            document.getElementById('rit-label').value = 'RIT-A';
+            updateFormInputsVisibility();
             clearPickedMarkers();
         });
 
@@ -1386,28 +1406,12 @@
             toggleRouteModeUI(e.target.value);
         });
 
-        document.getElementById('trip-type').addEventListener('change', (e) => {
-            const val = e.target.value;
-            updateFormInputsVisibility(val);
-            
-            if (val !== 'round') {
-                document.getElementById('return-time').value = '';
-            }
-            if (!['rita', 'round'].includes(val)) {
-                document.getElementById('rita-depart').value = '';
-                document.getElementById('rita-arrive').value = '';
-            }
-            if (!['ritb', 'round'].includes(val)) {
-                document.getElementById('ritb-depart').value = '';
-                document.getElementById('ritb-arrive').value = '';
-            }
-            if (val !== 'nonstop') {
-                document.getElementById('nonstop-layover-min').value = '60';
-                document.getElementById('nonstop-layover-max').value = '60';
-            }
-            if (['rita', 'ritb', 'round'].includes(val)) {
-                document.getElementById('start-time').value = '';
-            }
+        document.getElementById('trip-type').addEventListener('change', () => {
+            updateFormInputsVisibility();
+        });
+
+        document.getElementById('rit-label').addEventListener('change', () => {
+            updateFormInputsVisibility();
         });
 
         // Load all devices from config
@@ -1606,7 +1610,6 @@
             document.getElementById('avg-speed').value = dev.avg_speed;
             document.getElementById('max-speed').value = dev.max_speed;
             document.getElementById('start-time').value = dev.start_time || '';
-            document.getElementById('trip-type').value = dev.trip_type || 'single';
             document.getElementById('return-time').value = dev.return_time || '';
             document.getElementById('rita-depart').value = dev.rita_depart || '';
             document.getElementById('rita-arrive').value = dev.rita_arrive || '';
@@ -1624,8 +1627,23 @@
             }
             toggleRouteModeUI(routeMode);
             
-            const tripType = dev.trip_type || 'single';
-            updateFormInputsVisibility(tripType);
+            let tripType = dev.trip_type || 'single';
+            let ritLabel = dev.rit_label || 'RIT-A';
+            
+            if (tripType === 'rita') {
+                tripType = 'single';
+                ritLabel = 'RIT-A';
+            } else if (tripType === 'ritb') {
+                tripType = 'single';
+                ritLabel = 'RIT-B';
+            } else if (tripType === 'round') {
+                tripType = 'nonstop';
+                ritLabel = 'RIT-A';
+            }
+            
+            document.getElementById('trip-type').value = tripType;
+            document.getElementById('rit-label').value = ritLabel;
+            updateFormInputsVisibility();
             
             document.getElementById('form-title').textContent = `Edit Device: ${dev.id}`;
             document.querySelector('#device-form button[type="submit"]').textContent = "Save Changes";
@@ -1682,6 +1700,7 @@
                 max_speed: parseInt(document.getElementById('max-speed').value),
                 start_time: document.getElementById('start-time').value.trim(),
                 trip_type: document.getElementById('trip-type').value,
+                rit_label: document.getElementById('rit-label').value,
                 return_time: document.getElementById('return-time').value.trim(),
                 rita_depart: document.getElementById('rita-depart').value.trim(),
                 rita_arrive: document.getElementById('rita-arrive').value.trim(),

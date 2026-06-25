@@ -53,8 +53,8 @@ def save_config(cfg):
             id, name, type, start_lat, start_lon, end_lat, end_lon, 
             min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
             nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive,
-            waypoints, route_mode
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            waypoints, route_mode, rit_label
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             dev["id"],
             dev.get("name", ""),
@@ -68,7 +68,7 @@ def save_config(cfg):
             dev["max_speed"],
             dev["interval"],
             dev.get("start_time", ""),
-            dev.get("trip_type", "single"),
+            dev["trip_type"],
             dev.get("return_time", ""),
             dev.get("nonstop_layover_min", 60),
             dev.get("nonstop_layover_max", 60),
@@ -77,7 +77,8 @@ def save_config(cfg):
             dev.get("ritb_depart", ""),
             dev.get("ritb_arrive", ""),
             json.dumps(dev.get("waypoints", [])),
-            dev.get("route_mode", "direction")
+            dev.get("route_mode", "direction"),
+            dev.get("rit_label", "RIT-A")
         ))
     conn.commit()
     conn.close()
@@ -284,6 +285,7 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
     vehicle_type = device.get("type", "car")
     start_time_str = device.get("start_time", "")
     trip_type = device.get("trip_type", "single")
+    rit_label = device.get("rit_label", "RIT-A")
     return_time_str = device.get("return_time", "")
     min_speed = device.get("min_speed", 20)
     avg_speed = device.get("avg_speed", 50)
@@ -295,36 +297,57 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
     ritb_depart_str = device.get("ritb_depart", "")
     ritb_arrive_str = device.get("ritb_arrive", "")
     
-    arrive_time_str = None
+    # Map trip parameters based on trip_type and rit_label
+    # Support old trip types for backward compatibility, but unified trip_type + rit_label is used.
+    normalized_trip_type = trip_type
     if trip_type == "rita":
-        start_time_str = rita_depart_str
-        arrive_time_str = rita_arrive_str
+        normalized_trip_type = "single"
+        rit_label = "RIT-A"
     elif trip_type == "ritb":
-        start_time_str = ritb_depart_str
-        arrive_time_str = ritb_arrive_str
+        normalized_trip_type = "single"
+        rit_label = "RIT-B"
     elif trip_type == "round":
-        if not is_reversed:
-            start_time_str = rita_depart_str
-            arrive_time_str = rita_arrive_str
-            return_time_str = ritb_depart_str
-        else:
+        normalized_trip_type = "nonstop"
+        rit_label = "RIT-A"
+        
+    if normalized_trip_type == "single":
+        if rit_label == "RIT-B":
             start_time_str = ritb_depart_str
             arrive_time_str = ritb_arrive_str
+            is_reversed = True
+        else:
+            start_time_str = rita_depart_str
+            arrive_time_str = rita_arrive_str
+            is_reversed = False
+    elif normalized_trip_type == "nonstop":
+        start_time_str = device.get("start_time", "")
+        if not start_time_str:
+            start_time_str = ritb_depart_str if rit_label == "RIT-B" else rita_depart_str
+        if not is_reversed:
+            arrive_time_str = rita_arrive_str
+        else:
+            arrive_time_str = ritb_arrive_str
+
+    active_rit_label = "RIT-B" if (normalized_trip_type == "single" and rit_label == "RIT-B") or (normalized_trip_type == "nonstop" and is_reversed) else "RIT-A"
+    sched_depart_str = ritb_depart_str if active_rit_label == "RIT-B" else rita_depart_str
+    sched_arrive_str = ritb_arrive_str if active_rit_label == "RIT-B" else rita_arrive_str
             
     # 1. Scheduled State
     if state == "SCHEDULED":
         today_str = time.strftime("%Y-%m-%d", time.localtime(tick_time))
-        if is_scheduled_time_reached_at(start_time_str, tick_time) and (not start_time_str or last_start_date != today_str):
-            state = "DRIVING"
-            last_start_date = today_str if start_time_str else ""
-            current_speed = 0.0
-            print(f"[{device_id}] Scheduled start time {start_time_str} reached! Starting driving.")
+        check_start_time = start_time_str
+        if normalized_trip_type == "nonstop" and not check_start_time:
+            check_start_time = ""
             
-            # Log RIT depart
-            if trip_type in ["rita", "ritb", "round"]:
-                actual_depart_str = time.strftime("%H:%M", time.localtime(tick_time))
-                rit_type = "RIT-B" if is_reversed else "RIT-A"
-                database.log_rit_depart(device_id, rit_type, today_str, start_time_str, actual_depart_str)
+        if not check_start_time or (is_scheduled_time_reached_at(check_start_time, tick_time) and last_start_date != today_str):
+            state = "DRIVING"
+            last_start_date = today_str if check_start_time else ""
+            current_speed = 0.0
+            print(f"[{device_id}] Scheduled start time {check_start_time} reached! Starting driving.")
+            
+            # Log RIT depart with date and time
+            actual_depart_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(tick_time))
+            database.log_rit_depart(device_id, active_rit_label, today_str, sched_depart_str, actual_depart_str)
         else:
             pt = route[0]
             bearing = calculate_bearing(route[0]["lat"], route[0]["lon"], route[1]["lat"], route[1]["lon"])
@@ -349,13 +372,20 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
     if state == "WAITING_RETURN":
         elapsed_since_arrival = tick_time - arrival_time
         
-        if trip_type == "nonstop":
+        if normalized_trip_type == "nonstop":
             if elapsed_since_arrival >= layover_duration:
                 state = "DRIVING"
                 is_reversed = not is_reversed
                 distance_traveled = 0.0
                 current_speed = 0.0
                 print(f"[{device_id}] Nonstop layover completed. Reversing direction and starting leg.")
+                
+                # Log new leg departure
+                new_active_label = "RIT-B" if is_reversed else "RIT-A"
+                new_sched_depart = ritb_depart_str if new_active_label == "RIT-B" else rita_depart_str
+                today_str = time.strftime("%Y-%m-%d", time.localtime(tick_time))
+                actual_depart_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(tick_time))
+                database.log_rit_depart(device_id, new_active_label, today_str, new_sched_depart, actual_depart_str)
             else:
                 pt = route[-1]
                 bearing = calculate_bearing(route[-2]["lat"], route[-2]["lon"], route[-1]["lat"], route[-1]["lon"])
@@ -374,11 +404,9 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
                 current_speed = 0.0
                 print(f"[{device_id}] WAITING_RETURN finished. Starting return leg.")
                 
-                # Log RIT-B depart
-                if trip_type == "round":
-                    today_str = time.strftime("%Y-%m-%d", time.localtime(tick_time))
-                    actual_depart_str = time.strftime("%H:%M", time.localtime(tick_time))
-                    database.log_rit_depart(device_id, "RIT-B", today_str, return_time_str, actual_depart_str)
+                today_str = time.strftime("%Y-%m-%d", time.localtime(tick_time))
+                actual_depart_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(tick_time))
+                database.log_rit_depart(device_id, "RIT-B", today_str, ritb_depart_str, actual_depart_str)
             else:
                 pt = route[-1]
                 bearing = calculate_bearing(route[-2]["lat"], route[-2]["lon"], route[-1]["lat"], route[-1]["lon"])
@@ -446,7 +474,7 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
             status_desc = "CORNERING"
         else:
             ideal_speed = None
-            if trip_type in ["rita", "ritb", "round"] and arrive_time_str:
+            if normalized_trip_type == "single" and arrive_time_str:
                 remaining_dist = total_dist - distance_traveled
                 ideal_speed = get_ideal_speed(arrive_time_str, tick_time, remaining_dist, min_speed, max_speed)
                 
@@ -481,16 +509,15 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
             current_speed = 0.0
             
             # Log RIT arrive
-            if trip_type in ["rita", "ritb", "round"]:
+            if normalized_trip_type in ["single", "nonstop"]:
                 today_str = time.strftime("%Y-%m-%d", time.localtime(tick_time))
-                actual_arrive_str = time.strftime("%H:%M", time.localtime(tick_time))
-                rit_type = "RIT-B" if is_reversed else "RIT-A"
-                database.log_rit_arrive(device_id, rit_type, today_str, arrive_time_str, actual_arrive_str)
+                actual_arrive_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(tick_time))
+                database.log_rit_arrive(device_id, active_rit_label, today_str, sched_arrive_str, actual_arrive_str)
                 
-            if trip_type in ["single", "rita", "ritb"]:
+            if normalized_trip_type == "single":
                 state = "COMPLETED"
                 status_desc = "COMPLETED"
-            elif trip_type == "nonstop":
+            elif normalized_trip_type == "nonstop":
                 state = "WAITING_RETURN"
                 status_desc = "WAITING_RETURN"
                 arrival_time = tick_time
@@ -501,7 +528,7 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
                 chosen_minutes = random.randint(lay_min_val, lay_max_val)
                 layover_duration = chosen_minutes * 60
                 print(f"[{device_id}] Reached destination. Entering WAITING_RETURN nonstop. Layover: {chosen_minutes} minutes ({layover_duration}s).")
-            else: # round trip
+            else: # round trip (legacy compatibility)
                 if not is_reversed:
                     state = "WAITING_RETURN"
                     status_desc = "WAITING_RETURN"
@@ -555,16 +582,30 @@ def run_simulation(device, traccar_host, shutdown_event):
     }
     
     trip_type = device.get("trip_type", "single")
-    rita_depart_str = device.get("rita_depart", "")
-    ritb_depart_str = device.get("ritb_depart", "")
+    rit_label = device.get("rit_label", "RIT-A")
     
-    start_time_str = device.get("start_time", "")
-    if trip_type == "rita" and rita_depart_str:
-        start_time_str = rita_depart_str
-    elif trip_type == "ritb" and ritb_depart_str:
-        start_time_str = ritb_depart_str
-    elif trip_type == "round" and rita_depart_str:
-        start_time_str = rita_depart_str
+    # Backward compatibility mapping
+    normalized_trip_type = trip_type
+    if trip_type == "rita":
+        normalized_trip_type = "single"
+        rit_label = "RIT-A"
+    elif trip_type == "ritb":
+        normalized_trip_type = "single"
+        rit_label = "RIT-B"
+    elif trip_type == "round":
+        normalized_trip_type = "nonstop"
+        rit_label = "RIT-A"
+
+    start_time_str = ""
+    if normalized_trip_type == "single":
+        if rit_label == "RIT-B":
+            start_time_str = device.get("ritb_depart", "")
+        else:
+            start_time_str = device.get("rita_depart", "")
+    elif normalized_trip_type == "nonstop":
+        start_time_str = device.get("start_time", "")
+        if not start_time_str:
+            start_time_str = device.get("ritb_depart", "") if rit_label == "RIT-B" else device.get("rita_depart", "")
         
     if start_time_str:
         state_vars["state"] = "SCHEDULED"
@@ -584,7 +625,7 @@ def run_simulation(device, traccar_host, shutdown_event):
         except Exception as e:
             print(f"[{device_id}] Error loading state: {e}. Starting fresh.")
     else:
-        if trip_type == "ritb":
+        if (normalized_trip_type == "single" and rit_label == "RIT-B") or (normalized_trip_type == "nonstop" and rit_label == "RIT-B"):
             state_vars["is_reversed"] = True
             
     if state_vars["is_reversed"]:
@@ -666,37 +707,38 @@ def run_simulation(device, traccar_host, shutdown_event):
             
         state_label = status_desc
         
-        curr_start_time_str = start_time_str
-        if trip_type == "rita":
-            curr_start_time_str = rita_depart_str
-        elif trip_type == "ritb":
-            curr_start_time_str = ritb_depart_str
-        elif trip_type == "round":
+        curr_start_time_str = ""
+        if normalized_trip_type == "single":
+            curr_start_time_str = ritb_depart_str if rit_label == "RIT-B" else rita_depart_str
+        elif normalized_trip_type == "nonstop":
             curr_start_time_str = ritb_depart_str if state_vars["is_reversed"] else rita_depart_str
+            if not curr_start_time_str:
+                curr_start_time_str = device.get("start_time", "")
             
         if state_vars["state"] == "SCHEDULED":
             state_label = f"SCHEDULED ({curr_start_time_str})"
         elif state_vars["state"] == "WAITING_RETURN":
-            if trip_type == "round":
-                state_label = f"WAITING ({ritb_depart_str})"
+            elapsed_since_arrival = tick_start - state_vars["arrival_time"]
+            lay_dur = state_vars.get("layover_duration", 0)
+            if elapsed_since_arrival < lay_dur:
+                left_sec = int(lay_dur - elapsed_since_arrival)
+                state_label = f"LAYOVER ({left_sec // 60}m {left_sec % 60}s left)"
             else:
-                elapsed_since_arrival = tick_start - state_vars["arrival_time"]
-                if elapsed_since_arrival < 600:
-                    left_sec = int(600 - elapsed_since_arrival)
-                    state_label = f"LAYOVER ({left_sec // 60}m {left_sec % 60}s left)"
-                else:
-                    state_label = f"WAITING ({device.get('return_time', '')})"
+                state_label = "WAITING"
                 
         with telemetry_lock:
+            active_rit_label = "RIT-B" if (normalized_trip_type == "single" and rit_label == "RIT-B") or (normalized_trip_type == "nonstop" and state_vars["is_reversed"]) else "RIT-A"
             telemetry_data[device_id] = {
                 "lat": pt["lat"], "lon": pt["lon"], "speed": speed, "bearing": bearing,
-                "state": state_label, "progress": progress_val,
+                "state": f"{state_label} ({active_rit_label})" if state_label in ["DRIVING", "CRUISING", "CORNERING", "SPEEDING", "TRAFFIC"] or state_label.startswith("LAYOVER") else state_label,
+                "progress": progress_val,
                 "distance_traveled": state_vars["distance_traveled"], "total_distance": total_dist,
                 "is_reversed": state_vars["is_reversed"],
                 "start": device["start"],
                 "end": device["end"],
                 "waypoints": device.get("waypoints", []),
                 "route_mode": device.get("route_mode", "direction"),
+                "rit_label": active_rit_label,
                 "name": device.get("name", device_id)
             }
             
@@ -863,7 +905,8 @@ def add_device():
         "ritb_depart": data.get("ritb_depart", ""),
         "ritb_arrive": data.get("ritb_arrive", ""),
         "waypoints": data.get("waypoints", []),
-        "route_mode": data.get("route_mode", "direction")
+        "route_mode": data.get("route_mode", "direction"),
+        "rit_label": data.get("rit_label", "RIT-A")
     }
     
     if idx >= 0:
