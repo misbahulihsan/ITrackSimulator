@@ -929,13 +929,32 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
     chat_id = f"{clean_number}@c.us"
     
     device_name = device_id
+    dep_lat, dep_lon = None, None
+    arr_lat, arr_lon = None, None
+    
     try:
         devs = database.get_devices()
         dev = next((d for d in devs if d["id"] == device_id), None)
-        if dev and dev.get("name"):
-            device_name = f"{dev['name']} ({device_id})"
-    except Exception:
-        pass
+        if dev:
+            if dev.get("name"):
+                device_name = f"{dev['name']} ({device_id})"
+            
+            s_lat = dev.get("start_lat")
+            s_lon = dev.get("start_lon")
+            e_lat = dev.get("end_lat")
+            e_lon = dev.get("end_lon")
+            
+            if rit_label == "RIT-B":
+                dep_lat, dep_lon = e_lat, e_lon
+                arr_lat, arr_lon = s_lat, s_lon
+            else:
+                dep_lat, dep_lon = s_lat, s_lon
+                arr_lat, arr_lon = e_lat, e_lon
+    except Exception as e:
+        print(f"[WhatsApp] Error fetching device details/coordinates: {e}")
+        
+    dep_link_str = f"https://www.google.com/maps/search/?api=1&query={dep_lat},{dep_lon}" if dep_lat is not None else "-"
+    arr_link_str = f"https://www.google.com/maps/search/?api=1&query={arr_lat},{arr_lon}" if arr_lat is not None else "-"
         
     message = (
         f"🔔 *ITrack Simulator - RIT Report* 🔔\n\n"
@@ -943,10 +962,12 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
         f"*RIT Label:* {rit_label}\n"
         f"*Date:* {date}\n"
         f"*Status:* {status_label} ✅\n\n"
-        f"*Departure Details:*\n"
+        f"📍 *Departure Details:*\n"
+        f"- Location: {dep_link_str}\n"
         f"- Scheduled: {scheduled_depart or '-'}\n"
         f"- Actual: {actual_depart or '-'}\n\n"
-        f"*Arrival Details:*\n"
+        f"🏁 *Arrival Details:*\n"
+        f"- Location: {arr_link_str}\n"
         f"- Scheduled: {scheduled_arrive or '-'}\n"
         f"- Actual: {actual_arrive or '-'}"
     )
