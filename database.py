@@ -51,6 +51,28 @@ def init_db():
         cursor.execute("ALTER TABLE devices ADD COLUMN nonstop_layover_max INTEGER DEFAULT 60")
     except sqlite3.OperationalError:
         pass
+    
+    # Add columns for RIT scheduling
+    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive"]:
+        try:
+            cursor.execute(f"ALTER TABLE devices ADD COLUMN {col} TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+    # Create RIT runs report table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS rit_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT NOT NULL,
+        rit_type TEXT NOT NULL,
+        date TEXT NOT NULL,
+        scheduled_depart TEXT,
+        actual_depart TEXT,
+        scheduled_arrive TEXT,
+        actual_arrive TEXT,
+        status TEXT
+    )
+    """)
         
     conn.commit()
     
@@ -142,6 +164,17 @@ def get_devices():
             layover_min = 60
             layover_max = 60
             
+        try:
+            rita_depart = r["rita_depart"]
+            rita_arrive = r["rita_arrive"]
+            ritb_depart = r["ritb_depart"]
+            ritb_arrive = r["ritb_arrive"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            rita_depart = ""
+            rita_arrive = ""
+            ritb_depart = ""
+            ritb_arrive = ""
+            
         devices.append({
             "id": r["id"],
             "type": r["type"],
@@ -155,7 +188,11 @@ def get_devices():
             "trip_type": r["trip_type"],
             "return_time": r["return_time"],
             "nonstop_layover_min": layover_min if layover_min is not None else 60,
-            "nonstop_layover_max": layover_max if layover_max is not None else 60
+            "nonstop_layover_max": layover_max if layover_max is not None else 60,
+            "rita_depart": rita_depart or "",
+            "rita_arrive": rita_arrive or "",
+            "ritb_depart": ritb_depart or "",
+            "ritb_arrive": ritb_arrive or ""
         })
     return devices
 
@@ -174,6 +211,17 @@ def get_device(device_id):
             layover_min = 60
             layover_max = 60
             
+        try:
+            rita_depart = r["rita_depart"]
+            rita_arrive = r["rita_arrive"]
+            ritb_depart = r["ritb_depart"]
+            ritb_arrive = r["ritb_arrive"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            rita_depart = ""
+            rita_arrive = ""
+            ritb_depart = ""
+            ritb_arrive = ""
+            
         return {
             "id": r["id"],
             "type": r["type"],
@@ -187,7 +235,11 @@ def get_device(device_id):
             "trip_type": r["trip_type"],
             "return_time": r["return_time"],
             "nonstop_layover_min": layover_min if layover_min is not None else 60,
-            "nonstop_layover_max": layover_max if layover_max is not None else 60
+            "nonstop_layover_max": layover_max if layover_max is not None else 60,
+            "rita_depart": rita_depart or "",
+            "rita_arrive": rita_arrive or "",
+            "ritb_depart": ritb_depart or "",
+            "ritb_arrive": ritb_arrive or ""
         }
     return None
 
@@ -198,8 +250,8 @@ def add_device(dev):
     INSERT OR REPLACE INTO devices (
         id, type, start_lat, start_lon, end_lat, end_lon, 
         min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
-        nonstop_layover_min, nonstop_layover_max
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
         dev["type"],
@@ -211,11 +263,15 @@ def add_device(dev):
         dev["avg_speed"],
         dev["max_speed"],
         dev["interval"],
-        dev["start_time"],
+        dev.get("start_time", ""),
         dev["trip_type"],
-        dev["return_time"],
+        dev.get("return_time", ""),
         dev.get("nonstop_layover_min", 60),
-        dev.get("nonstop_layover_max", 60)
+        dev.get("nonstop_layover_max", 60),
+        dev.get("rita_depart", ""),
+        dev.get("rita_arrive", ""),
+        dev.get("ritb_depart", ""),
+        dev.get("ritb_arrive", "")
     ))
     conn.commit()
     conn.close()
@@ -226,6 +282,62 @@ def delete_device(device_id):
     cursor.execute("DELETE FROM devices WHERE id = ?", (device_id,))
     conn.commit()
     conn.close()
+
+def log_rit_depart(device_id, rit_type, date, scheduled_depart, actual_depart):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM rit_runs WHERE device_id = ? AND rit_type = ? AND date = ?", (device_id, rit_type, date))
+    row = cursor.fetchone()
+    if row:
+        cursor.execute("""
+        UPDATE rit_runs SET actual_depart = ?, status = 'RUNNING' WHERE id = ?
+        """, (actual_depart, row["id"]))
+    else:
+        cursor.execute("""
+        INSERT INTO rit_runs (device_id, rit_type, date, scheduled_depart, actual_depart, status)
+        VALUES (?, ?, ?, ?, ?, 'RUNNING')
+        """, (device_id, rit_type, date, scheduled_depart, actual_depart))
+    conn.commit()
+    conn.close()
+
+def log_rit_arrive(device_id, rit_type, date, scheduled_arrive, actual_arrive):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM rit_runs WHERE device_id = ? AND rit_type = ? AND date = ?", (device_id, rit_type, date))
+    row = cursor.fetchone()
+    if row:
+        cursor.execute("""
+        UPDATE rit_runs SET actual_arrive = ?, status = 'COMPLETED' WHERE id = ?
+        """, (actual_arrive, row["id"]))
+    else:
+        cursor.execute("""
+        INSERT INTO rit_runs (device_id, rit_type, date, scheduled_arrive, actual_arrive, status)
+        VALUES (?, ?, ?, ?, ?, 'COMPLETED')
+        """, (device_id, rit_type, date, scheduled_arrive, actual_arrive))
+    conn.commit()
+    conn.close()
+
+def get_rit_runs():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM rit_runs ORDER BY id DESC LIMIT 100")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    runs = []
+    for r in rows:
+        runs.append({
+            "id": r["id"],
+            "device_id": r["device_id"],
+            "rit_type": r["rit_type"],
+            "date": r["date"],
+            "scheduled_depart": r["scheduled_depart"],
+            "actual_depart": r["actual_depart"],
+            "scheduled_arrive": r["scheduled_arrive"],
+            "actual_arrive": r["actual_arrive"],
+            "status": r["status"]
+        })
+    return runs
 
 # Initialize tables
 init_db()

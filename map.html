@@ -506,6 +506,190 @@
             background-color: var(--bg-secondary) !important;
             border: 1px solid var(--border-color) !important;
         }
+
+        /* Modal Backdrop */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Modal Container */
+        .modal-container {
+            width: 90%;
+            max-width: 950px;
+            max-height: 85%;
+            background-color: rgba(30, 41, 59, 0.85);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(15, 23, 42, 0.4);
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header h2 span {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--danger-color);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        /* Report Table Styling */
+        .report-table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: rgba(15, 23, 42, 0.4);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .report-table th, .report-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .report-table th {
+            background-color: rgba(15, 23, 42, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: var(--accent-color);
+        }
+
+        .report-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .report-table td {
+            color: var(--text-primary);
+        }
+
+        .report-status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+        .rep-status-running {
+            background-color: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color);
+        }
+        .rep-status-completed {
+            background-color: rgba(74, 222, 128, 0.15);
+            color: var(--success-color);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            background-color: rgba(15, 23, 42, 0.4);
+            gap: 12px;
+        }
+
+        /* Marker labeled markers styles */
+        .leaflet-rit-label {
+            background: none;
+            border: none;
+            box-shadow: none;
+        }
+
+        .rit-marker-glow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 14px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .rit-marker-depart {
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.8), inset 0 0 4px rgba(255,255,255,0.6);
+        }
+
+        .rit-marker-arrive {
+            background: radial-gradient(circle, #f87171 0%, #dc2626 100%);
+            box-shadow: 0 0 12px rgba(248, 113, 113, 0.8), inset 0 0 4px rgba(255,255,255,0.6);
+        }
     </style>
 </head>
 <body>
@@ -534,7 +718,10 @@
             <div class="card">
                 <div class="card-title">
                     <span>Devices</span>
-                    <button class="btn-primary btn-sm" id="btn-show-add" style="padding: 2px 8px;">+ Add</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary btn-sm" id="btn-show-rit-report" style="padding: 2px 8px;">📋 RIT Report</button>
+                        <button class="btn-primary btn-sm" id="btn-show-add" style="padding: 2px 8px;">+ Add</button>
+                    </div>
                 </div>
                 <div class="device-list" id="device-list-container">
                     <!-- Loaded dynamically -->
@@ -594,7 +781,7 @@
                             <label for="avg-speed">Avg Speed (km/h)</label>
                             <input type="number" id="avg-speed" value="50" min="10" required>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="start-time-group">
                             <label for="start-time">Start Time (Optional)</label>
                             <input type="text" id="start-time" placeholder="HH:MM e.g. 10:45">
                         </div>
@@ -602,14 +789,35 @@
                             <label for="trip-type">Trip Type</label>
                             <select id="trip-type">
                                 <option value="single">Single Trip</option>
-                                <option value="round">Round Trip</option>
+                                <option value="rita">RIT-A Only (Outbound)</option>
+                                <option value="ritb">RIT-B Only (Inbound)</option>
+                                <option value="round">RIT-A & RIT-B (Round Trip)</option>
                                 <option value="nonstop">24 Hours Nonstop</option>
                             </select>
                         </div>
-                        <div class="form-group full-width" id="return-time-group" style="display: none;">
-                            <label for="return-time">Return Time (for Round Trip)</label>
-                            <input type="text" id="return-time" placeholder="HH:MM e.g. 16:00">
+                        <!-- RIT Times Group -->
+                        <div class="form-group full-width" id="rit-times-group" style="display: none; background: rgba(15, 23, 42, 0.4); padding: 12px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.05); margin-top: 4px;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;">
+                                <div class="form-group" id="rita-depart-group" style="margin-bottom: 0;">
+                                    <label for="rita-depart">RIT-A Depart Time</label>
+                                    <input type="text" id="rita-depart" placeholder="HH:MM e.g. 06:15">
+                                </div>
+                                <div class="form-group" id="rita-arrive-group" style="margin-bottom: 0;">
+                                    <label for="rita-arrive">RIT-A Arrive Time</label>
+                                    <input type="text" id="rita-arrive" placeholder="HH:MM e.g. 13:45">
+                                </div>
+                                <div class="form-group" id="ritb-depart-group" style="margin-bottom: 0;">
+                                    <label for="ritb-depart">RIT-B Depart Time</label>
+                                    <input type="text" id="ritb-depart" placeholder="HH:MM e.g. 14:30">
+                                </div>
+                                <div class="form-group" id="ritb-arrive-group" style="margin-bottom: 0;">
+                                    <label for="ritb-arrive">RIT-B Arrive Time</label>
+                                    <input type="text" id="ritb-arrive" placeholder="HH:MM e.g. 19:00">
+                                </div>
+                            </div>
                         </div>
+                        <!-- Keep return-time hidden for backward compatibility -->
+                        <input type="hidden" id="return-time">
                         <div class="form-group full-width" id="nonstop-layover-group" style="display: none;">
                             <label>Nonstop Layover Range (Minutes)</label>
                             <div style="display: flex; gap: 8px;">
@@ -689,6 +897,43 @@
 
     </div>
 
+    <!-- RIT Runs Report Modal Overlay -->
+    <div class="modal-overlay" id="rit-report-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>📋 <span>Report Running RIT</span></h2>
+                <button class="modal-close" id="btn-close-rit-report">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="report-table-container">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Device ID</th>
+                                <th>RIT Run</th>
+                                <th>Date</th>
+                                <th>Scheduled Depart</th>
+                                <th>Actual Depart</th>
+                                <th>Scheduled Arrive</th>
+                                <th>Actual Arrive</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rit-report-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: var(--text-secondary);">Loading RIT runs report...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-refresh-rit-report">🔄 Refresh</button>
+                <button class="btn-primary" id="btn-hide-rit-report">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
@@ -710,6 +955,9 @@
         let activeDeviceID = null;
         let mapMarkers = {}; // device_id -> L.marker
         let routePaths = {}; // device_id -> L.polyline
+        let lastTelemetryData = {}; // Cache of last poll
+        let departMarker = null;
+        let arriveMarker = null;
         
         // Custom rotated vehicle SVG icons
         const VEHICLE_COLORS = {
@@ -748,6 +996,20 @@
         let pickedEndMarker = null;
 
         // Toggle Form
+        function updateFormInputsVisibility(mode) {
+            const isRit = ['rita', 'ritb', 'round'].includes(mode);
+            document.getElementById('rit-times-group').style.display = isRit ? 'block' : 'none';
+            
+            document.getElementById('rita-depart-group').style.display = ['rita', 'round'].includes(mode) ? 'flex' : 'none';
+            document.getElementById('rita-arrive-group').style.display = ['rita', 'round'].includes(mode) ? 'flex' : 'none';
+            document.getElementById('ritb-depart-group').style.display = ['ritb', 'round'].includes(mode) ? 'flex' : 'none';
+            document.getElementById('ritb-arrive-group').style.display = ['ritb', 'round'].includes(mode) ? 'flex' : 'none';
+            
+            document.getElementById('start-time-group').style.display = ['single', 'nonstop'].includes(mode) ? 'flex' : 'none';
+            document.getElementById('nonstop-layover-group').style.display = mode === 'nonstop' ? 'block' : 'none';
+        }
+
+        // Toggle Form
         document.getElementById('btn-show-add').addEventListener('click', () => {
             const card = document.getElementById('add-device-card');
             card.style.display = card.style.display === 'none' ? 'block' : 'none';
@@ -755,8 +1017,7 @@
             document.getElementById('device-id').disabled = false;
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
-            document.getElementById('return-time-group').style.display = 'none';
-            document.getElementById('nonstop-layover-group').style.display = 'none';
+            updateFormInputsVisibility('single');
             clearPickedMarkers();
         });
 
@@ -822,15 +1083,25 @@
 
         document.getElementById('trip-type').addEventListener('change', (e) => {
             const val = e.target.value;
-            document.getElementById('return-time-group').style.display = val === 'round' ? 'block' : 'none';
-            document.getElementById('nonstop-layover-group').style.display = val === 'nonstop' ? 'block' : 'none';
+            updateFormInputsVisibility(val);
             
             if (val !== 'round') {
                 document.getElementById('return-time').value = '';
             }
+            if (!['rita', 'round'].includes(val)) {
+                document.getElementById('rita-depart').value = '';
+                document.getElementById('rita-arrive').value = '';
+            }
+            if (!['ritb', 'round'].includes(val)) {
+                document.getElementById('ritb-depart').value = '';
+                document.getElementById('ritb-arrive').value = '';
+            }
             if (val !== 'nonstop') {
                 document.getElementById('nonstop-layover-min').value = '60';
                 document.getElementById('nonstop-layover-max').value = '60';
+            }
+            if (['rita', 'ritb', 'round'].includes(val)) {
+                document.getElementById('start-time').value = '';
             }
         });
 
@@ -971,6 +1242,9 @@
             if (mapMarkers[devId]) {
                 mapMarkers[devId].openPopup();
             }
+            
+            // Immediately update telemetry UI for the selected device
+            updateTelemetryUI(lastTelemetryData);
         }
 
         // Toggle Running state
@@ -1021,12 +1295,15 @@
             document.getElementById('start-time').value = dev.start_time || '';
             document.getElementById('trip-type').value = dev.trip_type || 'single';
             document.getElementById('return-time').value = dev.return_time || '';
+            document.getElementById('rita-depart').value = dev.rita_depart || '';
+            document.getElementById('rita-arrive').value = dev.rita_arrive || '';
+            document.getElementById('ritb-depart').value = dev.ritb_depart || '';
+            document.getElementById('ritb-arrive').value = dev.ritb_arrive || '';
             document.getElementById('nonstop-layover-min').value = dev.nonstop_layover_min || 60;
             document.getElementById('nonstop-layover-max').value = dev.nonstop_layover_max || 60;
             
             const tripType = dev.trip_type || 'single';
-            document.getElementById('return-time-group').style.display = tripType === 'round' ? 'block' : 'none';
-            document.getElementById('nonstop-layover-group').style.display = tripType === 'nonstop' ? 'block' : 'none';
+            updateFormInputsVisibility(tripType);
             
             document.getElementById('form-title').textContent = `Edit Device: ${dev.id}`;
             document.querySelector('#device-form button[type="submit"]').textContent = "Save Changes";
@@ -1056,6 +1333,10 @@
                 start_time: document.getElementById('start-time').value.trim(),
                 trip_type: document.getElementById('trip-type').value,
                 return_time: document.getElementById('return-time').value.trim(),
+                rita_depart: document.getElementById('rita-depart').value.trim(),
+                rita_arrive: document.getElementById('rita-arrive').value.trim(),
+                ritb_depart: document.getElementById('ritb-depart').value.trim(),
+                ritb_arrive: document.getElementById('ritb-arrive').value.trim(),
                 nonstop_layover_min: parseInt(document.getElementById('nonstop-layover-min').value || 60),
                 nonstop_layover_max: parseInt(document.getElementById('nonstop-layover-max').value || 60)
             };
@@ -1092,6 +1373,7 @@
                 })
                 .then(data => {
                     if (!data) return;
+                    lastTelemetryData = data; // Cache telemetry
                     updateMapMarkers(data);
                     updateTelemetryUI(data);
                     
@@ -1148,10 +1430,73 @@
             });
         }
 
+        // Update RIT start/end indicators (D / A) on map
+        function updateRITMarkers(activeTel, activeDev) {
+            let start = null;
+            let end = null;
+            let isReversed = false;
+
+            if (activeTel && activeTel.start && activeTel.end) {
+                start = activeTel.start;
+                end = activeTel.end;
+                isReversed = activeTel.is_reversed || false;
+            } else if (activeDev && activeDev.start && activeDev.end) {
+                start = activeDev.start;
+                end = activeDev.end;
+                isReversed = false;
+                if (activeDev.trip_type === 'ritb') {
+                    isReversed = true;
+                }
+            }
+
+            if (!start || !end) {
+                if (departMarker) {
+                    map.removeLayer(departMarker);
+                    departMarker = null;
+                }
+                if (arriveMarker) {
+                    map.removeLayer(arriveMarker);
+                    arriveMarker = null;
+                }
+                return;
+            }
+
+            const startCoords = [start.lat, start.lon];
+            const endCoords = [end.lat, end.lon];
+
+            const departCoords = isReversed ? endCoords : startCoords;
+            const arriveCoords = isReversed ? startCoords : endCoords;
+
+            const departIcon = L.divIcon({
+                className: 'leaflet-rit-label',
+                html: `<div class="rit-marker-glow rit-marker-depart" title="Depart (D)">D</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const arriveIcon = L.divIcon({
+                className: 'leaflet-rit-label',
+                html: `<div class="rit-marker-glow rit-marker-arrive" title="Arrive (A)">A</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            if (departMarker) {
+                departMarker.setLatLng(departCoords);
+            } else {
+                departMarker = L.marker(departCoords, { icon: departIcon, zIndexOffset: 500 }).addTo(map).bindPopup("<strong>Depart Point (D)</strong>");
+            }
+
+            if (arriveMarker) {
+                arriveMarker.setLatLng(arriveCoords);
+            } else {
+                arriveMarker = L.marker(arriveCoords, { icon: arriveIcon, zIndexOffset: 500 }).addTo(map).bindPopup("<strong>Arrive Point (A)</strong>");
+            }
+        }
+
         // Update Telemetry Console
         function updateTelemetryUI(telemetry) {
-            if (!activeDeviceID || !telemetry[activeDeviceID]) {
-                // Clear console
+            if (!activeDeviceID) {
                 document.getElementById('telemetry-active-name').textContent = "None Selected";
                 document.getElementById('telemetry-state').innerHTML = '-';
                 document.getElementById('telemetry-speed').textContent = '0 km/h';
@@ -1159,10 +1504,34 @@
                 document.getElementById('telemetry-bearing').textContent = '0°';
                 document.getElementById('telemetry-dist').textContent = '0.00 / 0.00 km';
                 document.getElementById('telemetry-progress').textContent = '0%';
+                updateRITMarkers(null, null);
                 return;
             }
 
+            const dev = devicesList.find(d => d.id === activeDeviceID);
             const tel = telemetry[activeDeviceID];
+
+            if (!tel) {
+                // Stopped device status
+                document.getElementById('telemetry-active-name').textContent = activeDeviceID;
+                document.getElementById('telemetry-state').innerHTML = `<span class="status-badge status-stopped">STOPPED</span>`;
+                document.getElementById('telemetry-speed').textContent = '0 km/h';
+                
+                if (dev) {
+                    document.getElementById('telemetry-coords').textContent = `${dev.start.lat.toFixed(5)}, ${dev.start.lon.toFixed(5)}`;
+                    document.getElementById('telemetry-dist').textContent = `0.00 / 0.00 km`;
+                } else {
+                    document.getElementById('telemetry-coords').textContent = '-0.00000, 0.00000';
+                    document.getElementById('telemetry-dist').textContent = '0.00 / 0.00 km';
+                }
+                
+                document.getElementById('telemetry-bearing').textContent = '0°';
+                document.getElementById('telemetry-progress').textContent = '0%';
+                
+                updateRITMarkers(null, dev);
+                return;
+            }
+
             document.getElementById('telemetry-active-name').textContent = activeDeviceID;
             
             const badgeClass = `status-${tel.state.toLowerCase() === 'offline_replay' ? 'replay' : tel.state.toLowerCase()}`;
@@ -1176,6 +1545,8 @@
             const totalDist = (tel.total_distance / 1000).toFixed(2);
             document.getElementById('telemetry-dist').textContent = `${distTraveled} / ${totalDist} km`;
             document.getElementById('telemetry-progress').textContent = `${tel.progress}%`;
+            
+            updateRITMarkers(tel, dev);
         }
 
         // Sidebar collapse toggle
@@ -1260,6 +1631,63 @@
                     btnServiceStop.disabled = false;
                 });
         });
+
+        // RIT Report Modal Interactions
+        const ritReportModal = document.getElementById('rit-report-modal');
+        const btnShowRitReport = document.getElementById('btn-show-rit-report');
+        const btnCloseRitReport = document.getElementById('btn-close-rit-report');
+        const btnHideRitReport = document.getElementById('btn-hide-rit-report');
+        const btnRefreshRitReport = document.getElementById('btn-refresh-rit-report');
+
+        function openRITReportModal() {
+            ritReportModal.classList.add('active');
+            fetchRITReport();
+        }
+
+        function closeRITReportModal() {
+            ritReportModal.classList.remove('active');
+        }
+
+        function fetchRITReport() {
+            const tbody = document.getElementById('rit-report-tbody');
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">🔄 Loading RIT runs report...</td></tr>`;
+            
+            fetch(`${API_BASE}/api/reports/rit`)
+                .then(r => r.json())
+                .then(data => {
+                    tbody.innerHTML = '';
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">No RIT run records found.</td></tr>`;
+                        return;
+                    }
+                    data.forEach(run => {
+                        const tr = document.createElement('tr');
+                        const statusBadgeClass = (run.status || '').toLowerCase() === 'running' ? 'rep-status-running' : 'rep-status-completed';
+                        const statusText = run.status || 'COMPLETED';
+                        
+                        tr.innerHTML = `
+                            <td style="font-weight: 600; color: var(--accent-color);">${run.device_id}</td>
+                            <td><span style="font-weight: 500;">${run.rit_type}</span></td>
+                            <td style="color: var(--text-secondary);">${run.date}</td>
+                            <td class="mono">${run.scheduled_depart || '-'}</td>
+                            <td class="mono" style="color: var(--success-color); font-weight: 500;">${run.actual_depart || '-'}</td>
+                            <td class="mono">${run.scheduled_arrive || '-'}</td>
+                            <td class="mono" style="color: var(--warning-color); font-weight: 500;">${run.actual_arrive || '-'}</td>
+                            <td><span class="report-status-badge ${statusBadgeClass}">${statusText}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    console.error("Error fetching RIT runs:", err);
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 20px;">Failed to load report data.</td></tr>`;
+                });
+        }
+
+        btnShowRitReport.addEventListener('click', openRITReportModal);
+        btnCloseRitReport.addEventListener('click', closeRITReportModal);
+        btnHideRitReport.addEventListener('click', closeRITReportModal);
+        btnRefreshRitReport.addEventListener('click', fetchRITReport);
 
         // Initialize App
         fetchServiceStatus();
