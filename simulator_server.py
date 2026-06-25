@@ -52,8 +52,9 @@ def save_config(cfg):
         INSERT OR REPLACE INTO devices (
             id, name, type, start_lat, start_lon, end_lat, end_lon, 
             min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
-            nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive,
+            waypoints, route_mode
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             dev["id"],
             dev.get("name", ""),
@@ -74,7 +75,9 @@ def save_config(cfg):
             dev.get("rita_depart", ""),
             dev.get("rita_arrive", ""),
             dev.get("ritb_depart", ""),
-            dev.get("ritb_arrive", "")
+            dev.get("ritb_arrive", ""),
+            json.dumps(dev.get("waypoints", [])),
+            dev.get("route_mode", "direction")
         ))
     conn.commit()
     conn.close()
@@ -153,13 +156,19 @@ def get_route(device, traccar_host):
         with open(json_path, "r") as f:
             return json.load(f)
             
-    start = device["start"]
-    end = device["end"]
+    waypoints = device.get("waypoints", [])
+    route_mode = device.get("route_mode", "direction")
+    
+    if route_mode == "multiple" and len(waypoints) >= 2:
+        coords_str = ";".join([f"{pt['lon']},{pt['lat']}" for pt in waypoints])
+    else:
+        start = device["start"]
+        end = device["end"]
+        coords_str = f"{start['lon']},{start['lat']};{end['lon']},{end['lat']}"
     
     url = (
         "https://router.project-osrm.org/route/v1/driving/"
-        f"{start['lon']},{start['lat']};"
-        f"{end['lon']},{end['lat']}"
+        f"{coords_str}"
         "?overview=full&geometries=geojson"
     )
     
@@ -194,10 +203,13 @@ def get_route(device, traccar_host):
         return route
     except Exception as e:
         print(f"[{device_id}] Routing failed: {e}. Falling back to straight-line.")
-        fallback = [
-            {"lat": start["lat"], "lon": start["lon"]},
-            {"lat": end["lat"], "lon": end["lon"]}
-        ]
+        if route_mode == "multiple" and len(waypoints) >= 2:
+            fallback = [{"lat": wp["lat"], "lon": wp["lon"]} for wp in waypoints]
+        else:
+            fallback = [
+                {"lat": start["lat"], "lon": start["lon"]},
+                {"lat": end["lat"], "lon": end["lon"]}
+            ]
         return fallback
 
 # Scheduling Helpers
@@ -683,6 +695,8 @@ def run_simulation(device, traccar_host, shutdown_event):
                 "is_reversed": state_vars["is_reversed"],
                 "start": device["start"],
                 "end": device["end"],
+                "waypoints": device.get("waypoints", []),
+                "route_mode": device.get("route_mode", "direction"),
                 "name": device.get("name", device_id)
             }
             
@@ -847,13 +861,17 @@ def add_device():
         "rita_depart": data.get("rita_depart", ""),
         "rita_arrive": data.get("rita_arrive", ""),
         "ritb_depart": data.get("ritb_depart", ""),
-        "ritb_arrive": data.get("ritb_arrive", "")
+        "ritb_arrive": data.get("ritb_arrive", ""),
+        "waypoints": data.get("waypoints", []),
+        "route_mode": data.get("route_mode", "direction")
     }
     
     if idx >= 0:
         # Check if coordinates changed
         old_device = devices[idx]
         coords_changed = (
+            old_device.get("route_mode", "direction") != new_device["route_mode"] or
+            old_device.get("waypoints", []) != new_device["waypoints"] or
             old_device["start"]["lat"] != new_device["start"]["lat"] or
             old_device["start"]["lon"] != new_device["start"]["lon"] or
             old_device["end"]["lat"] != new_device["end"]["lat"] or

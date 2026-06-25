@@ -722,6 +722,62 @@
             background: radial-gradient(circle, #f87171 0%, #dc2626 100%);
             box-shadow: 0 0 12px rgba(248, 113, 113, 0.8), inset 0 0 4px rgba(255,255,255,0.6);
         }
+
+        /* Waypoints styles */
+        .waypoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            border: 1px dashed rgba(255,255,255,0.05);
+        }
+        .waypoint-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px;
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            position: relative;
+        }
+        .waypoint-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .waypoint-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-waypoint-start { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .badge-waypoint-mid { background-color: rgba(168, 85, 247, 0.15); color: #c084fc; }
+        .badge-waypoint-end { background-color: rgba(248, 113, 113, 0.15); color: var(--danger-color); }
+        
+        .btn-remove-waypoint {
+            background-color: rgba(248, 113, 113, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            padding: 2px 6px;
+            font-size: 0.65rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 18px;
+            cursor: pointer;
+        }
+        .btn-remove-waypoint:hover {
+            background-color: rgba(248, 113, 113, 0.25);
+        }
+        .waypoint-coords-grid {
+            display: flex;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -786,24 +842,42 @@
                             <input type="number" id="report-interval" value="30" min="5" required>
                         </div>
                         <div class="form-group full-width">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label>Start Location</label>
-                                <button type="button" class="btn-secondary btn-sm" id="btn-pick-start" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                            <label for="route-mode">Route Mode</label>
+                            <select id="route-mode">
+                                <option value="direction">Direction (Start & End Only)</option>
+                                <option value="multiple">Multiple Direction (Multi-stop Waypoints)</option>
+                            </select>
+                        </div>
+                        <!-- Direct Start/End coordinates (only shown in 'direction' mode) -->
+                        <div id="direction-coordinates-group" class="full-width" style="display: contents;">
+                            <div class="form-group full-width">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label>Start Location</label>
+                                    <button type="button" class="btn-secondary btn-sm" id="btn-pick-start" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="number" id="start-lat" step="any" required placeholder="Latitude" style="flex: 1;">
+                                    <input type="number" id="start-lon" step="any" required placeholder="Longitude" style="flex: 1;">
+                                </div>
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="number" id="start-lat" step="any" required placeholder="Latitude" style="flex: 1;">
-                                <input type="number" id="start-lon" step="any" required placeholder="Longitude" style="flex: 1;">
+                            <div class="form-group full-width">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label>End Location</label>
+                                    <button type="button" class="btn-secondary btn-sm" id="btn-pick-end" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="number" id="end-lat" step="any" required placeholder="Latitude" style="flex: 1;">
+                                    <input type="number" id="end-lon" step="any" required placeholder="Longitude" style="flex: 1;">
+                                </div>
                             </div>
                         </div>
-                        <div class="form-group full-width">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label>End Location</label>
-                                <button type="button" class="btn-secondary btn-sm" id="btn-pick-end" style="padding: 2px 6px; font-size: 0.7rem; margin-bottom: 2px;">📍 Pick on Map</button>
+                        <!-- Multiple Waypoints container (only shown in 'multiple' mode) -->
+                        <div id="multiple-coordinates-group" class="form-group full-width" style="display: none;">
+                            <label>Multi-stop Waypoints</label>
+                            <div id="waypoint-list-container" class="waypoint-list">
+                                <!-- Dynamic rows loaded by JS -->
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="number" id="end-lat" step="any" required placeholder="Latitude" style="flex: 1;">
-                                <input type="number" id="end-lon" step="any" required placeholder="Longitude" style="flex: 1;">
-                            </div>
+                            <button type="button" class="btn-secondary btn-sm" id="btn-add-waypoint" style="margin-top: 4px; width: 100%;">➕ Add Location Row</button>
                         </div>
                         <div class="form-group">
                             <label for="min-speed">Min Speed (km/h)</label>
@@ -1053,6 +1127,8 @@
             document.getElementById('device-id').disabled = false;
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            document.getElementById('route-mode').value = 'direction';
+            toggleRouteModeUI('direction');
             updateFormInputsVisibility('single');
             clearPickedMarkers();
         });
@@ -1062,8 +1138,12 @@
             document.getElementById('device-id').disabled = false;
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            document.getElementById('route-mode').value = 'direction';
+            toggleRouteModeUI('direction');
             clearPickedMarkers();
         });
+
+        let pickedWaypointMarkers = {}; // index -> L.marker
 
         function clearPickedMarkers() {
             if (pickedStartMarker) {
@@ -1074,15 +1154,181 @@
                 map.removeLayer(pickedEndMarker);
                 pickedEndMarker = null;
             }
+            Object.keys(pickedWaypointMarkers).forEach(idx => {
+                map.removeLayer(pickedWaypointMarkers[idx]);
+            });
+            pickedWaypointMarkers = {};
             pickingMode = null;
             map.getContainer().style.cursor = '';
             document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
             document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
+            document.querySelectorAll('.btn-pick-waypoint').forEach(b => {
+                b.textContent = "📍 Pick";
+            });
+        }
+
+        // Waypoints UI Helpers
+        function getWaypointCount() {
+            return document.querySelectorAll('.waypoint-row').length;
+        }
+
+        function updateWaypointLabels() {
+            const rows = document.querySelectorAll('.waypoint-row');
+            const total = rows.length;
+            rows.forEach((row, idx) => {
+                const labelEl = row.querySelector('.waypoint-label');
+                const removeBtn = row.querySelector('.btn-remove-waypoint');
+                
+                const latInput = row.querySelector('.waypoint-lat');
+                const lonInput = row.querySelector('.waypoint-lon');
+                const pickBtn = row.querySelector('.btn-pick-waypoint');
+                
+                latInput.id = `waypoint-lat-${idx}`;
+                lonInput.id = `waypoint-lon-${idx}`;
+                pickBtn.id = `btn-pick-waypoint-${idx}`;
+                
+                pickBtn.onclick = (e) => {
+                    e.preventDefault();
+                    pickingMode = idx;
+                    map.getContainer().style.cursor = 'crosshair';
+                    // Reset all other pick buttons text
+                    document.querySelectorAll('.btn-pick-waypoint').forEach((b, i) => {
+                        b.textContent = i === idx ? "📍 Click Map..." : "📍 Pick";
+                    });
+                };
+                
+                let labelText = `Waypoint ${idx}`;
+                let labelClass = "badge-waypoint-mid";
+                if (idx === 0) {
+                    labelText = "Start Location (D)";
+                    labelClass = "badge-waypoint-start";
+                } else if (idx === total - 1) {
+                    labelText = "End Location (A)";
+                    labelClass = "badge-waypoint-end";
+                }
+                
+                labelEl.className = `waypoint-label badge ${labelClass}`;
+                labelEl.textContent = labelText;
+                
+                // Disable/hide remove button if count <= 2
+                if (total <= 2) {
+                    removeBtn.style.display = 'none';
+                } else {
+                    removeBtn.style.display = 'flex';
+                }
+            });
+        }
+
+        function renderWaypointsUI(wps) {
+            const container = document.getElementById('waypoint-list-container');
+            container.innerHTML = '';
+            
+            wps.forEach((wp, idx) => {
+                const row = createWaypointRow(wp.lat, wp.lon);
+                container.appendChild(row);
+            });
+            
+            updateWaypointLabels();
+        }
+
+        function createWaypointRow(lat = '', lon = '') {
+            const row = document.createElement('div');
+            row.className = 'waypoint-row';
+            row.innerHTML = `
+                <div class="waypoint-row-header">
+                    <span class="waypoint-label">Waypoint</span>
+                    <button type="button" class="btn-remove-waypoint">&times; Remove</button>
+                </div>
+                <div class="waypoint-coords-grid">
+                    <input type="number" step="any" class="waypoint-lat" required placeholder="Latitude" value="${lat}">
+                    <input type="number" step="any" class="waypoint-lon" required placeholder="Longitude" value="${lon}">
+                    <button type="button" class="btn-secondary btn-xs btn-pick-waypoint" style="white-space: nowrap; padding: 0 10px;">📍 Pick</button>
+                </div>
+            `;
+            
+            row.querySelector('.btn-remove-waypoint').onclick = (e) => {
+                e.preventDefault();
+                row.remove();
+                updateWaypointLabels();
+            };
+            
+            return row;
+        }
+
+        function updateWaypointMarkerOnMap(idx, lat, lng) {
+            if (pickedWaypointMarkers[idx]) {
+                map.removeLayer(pickedWaypointMarkers[idx]);
+            }
+            let label = "Waypoint";
+            const total = getWaypointCount();
+            if (idx === 0) label = "Start Point (D)";
+            else if (idx === total - 1) label = "End Point (A)";
+            else label = `Waypoint ${idx}`;
+            
+            pickedWaypointMarkers[idx] = L.marker([lat, lng]).addTo(map).bindPopup(`Picked ${label}`).openPopup();
+        }
+
+        function toggleRouteModeUI(mode) {
+            const dirGroup = document.getElementById('direction-coordinates-group');
+            const multiGroup = document.getElementById('multiple-coordinates-group');
+            
+            const startLat = document.getElementById('start-lat');
+            const startLon = document.getElementById('start-lon');
+            const endLat = document.getElementById('end-lat');
+            const endLon = document.getElementById('end-lon');
+
+            if (mode === 'multiple') {
+                dirGroup.style.setProperty('display', 'none', 'important');
+                multiGroup.style.display = 'block';
+                
+                startLat.removeAttribute('required');
+                startLon.removeAttribute('required');
+                endLat.removeAttribute('required');
+                endLon.removeAttribute('required');
+                
+                const count = getWaypointCount();
+                if (count < 2) {
+                    const wps = [];
+                    if (startLat.value && startLon.value) {
+                        wps.push({ lat: parseFloat(startLat.value), lon: parseFloat(startLon.value) });
+                    }
+                    if (endLat.value && endLon.value) {
+                        wps.push({ lat: parseFloat(endLat.value), lon: parseFloat(endLon.value) });
+                    }
+                    while (wps.length < 2) {
+                        wps.push({ lat: '', lon: '' });
+                    }
+                    renderWaypointsUI(wps);
+                } else {
+                    updateWaypointLabels();
+                }
+            } else {
+                const waypointRows = document.querySelectorAll('.waypoint-row');
+                if (waypointRows.length >= 2) {
+                    const firstLat = waypointRows[0].querySelector('.waypoint-lat').value;
+                    const firstLon = waypointRows[0].querySelector('.waypoint-lon').value;
+                    const lastLat = waypointRows[waypointRows.length - 1].querySelector('.waypoint-lat').value;
+                    const lastLon = waypointRows[waypointRows.length - 1].querySelector('.waypoint-lon').value;
+                    
+                    if (firstLat) startLat.value = firstLat;
+                    if (firstLon) startLon.value = firstLon;
+                    if (lastLat) endLat.value = lastLat;
+                    if (lastLon) endLon.value = lastLon;
+                }
+                
+                dirGroup.style.setProperty('display', 'contents', 'important');
+                multiGroup.style.display = 'none';
+                
+                startLat.setAttribute('required', 'required');
+                startLon.setAttribute('required', 'required');
+                endLat.setAttribute('required', 'required');
+                endLon.setAttribute('required', 'required');
+            }
         }
 
         // Map Click Picker Event
         map.on('click', (e) => {
-            if (!pickingMode) return;
+            if (pickingMode === null) return;
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             
@@ -1098,6 +1344,17 @@
                 if (pickedEndMarker) map.removeLayer(pickedEndMarker);
                 pickedEndMarker = L.marker([lat, lng]).addTo(map).bindPopup("Picked End Location").openPopup();
                 document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
+            } else if (typeof pickingMode === 'number') {
+                const idx = pickingMode;
+                const latInput = document.getElementById(`waypoint-lat-${idx}`);
+                const lonInput = document.getElementById(`waypoint-lon-${idx}`);
+                if (latInput && lonInput) {
+                    latInput.value = lat.toFixed(6);
+                    lonInput.value = lng.toFixed(6);
+                    updateWaypointMarkerOnMap(idx, lat, lng);
+                }
+                const btn = document.getElementById(`btn-pick-waypoint-${idx}`);
+                if (btn) btn.textContent = "📍 Pick";
             }
             pickingMode = null;
             map.getContainer().style.cursor = '';
@@ -1115,6 +1372,18 @@
             map.getContainer().style.cursor = 'crosshair';
             e.target.textContent = "📍 Click on Map...";
             document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
+        });
+
+        document.getElementById('btn-add-waypoint').addEventListener('click', (e) => {
+            e.preventDefault();
+            const container = document.getElementById('waypoint-list-container');
+            const row = createWaypointRow();
+            container.appendChild(row);
+            updateWaypointLabels();
+        });
+
+        document.getElementById('route-mode').addEventListener('change', (e) => {
+            toggleRouteModeUI(e.target.value);
         });
 
         document.getElementById('trip-type').addEventListener('change', (e) => {
@@ -1314,7 +1583,7 @@
                     if (activeDeviceID === devId) activeDeviceID = null;
                     fetchDevices();
                 })
-                .catch(err => console.error(err));
+                 .catch(err => console.error(err));
         };
 
         // Edit device configuration (form population)
@@ -1346,6 +1615,15 @@
             document.getElementById('nonstop-layover-min').value = dev.nonstop_layover_min || 60;
             document.getElementById('nonstop-layover-max').value = dev.nonstop_layover_max || 60;
             
+            const routeMode = dev.route_mode || 'direction';
+            document.getElementById('route-mode').value = routeMode;
+            if (routeMode === 'multiple') {
+                renderWaypointsUI(dev.waypoints || []);
+            } else {
+                document.getElementById('waypoint-list-container').innerHTML = '';
+            }
+            toggleRouteModeUI(routeMode);
+            
             const tripType = dev.trip_type || 'single';
             updateFormInputsVisibility(tripType);
             
@@ -1354,24 +1632,51 @@
             
             document.getElementById('add-device-card').scrollIntoView({ behavior: 'smooth' });
         };
-
+ 
         // Add/Edit Submit Form
         document.getElementById('device-form').addEventListener('submit', (e) => {
             e.preventDefault();
             
+            const routeMode = document.getElementById('route-mode').value;
+            let startVal, endVal, waypointsVal;
+            
+            if (routeMode === 'multiple') {
+                const waypointRows = document.querySelectorAll('.waypoint-row');
+                waypointsVal = [];
+                waypointRows.forEach(row => {
+                    const lat = parseFloat(row.querySelector('.waypoint-lat').value);
+                    const lon = parseFloat(row.querySelector('.waypoint-lon').value);
+                    waypointsVal.push({ lat, lon });
+                });
+                
+                if (waypointsVal.length < 2) {
+                    alert("Please specify at least 2 locations (Start and End) for Multiple Direction mode.");
+                    return;
+                }
+                
+                startVal = waypointsVal[0];
+                endVal = waypointsVal[waypointsVal.length - 1];
+            } else {
+                startVal = {
+                    lat: parseFloat(document.getElementById('start-lat').value),
+                    lon: parseFloat(document.getElementById('start-lon').value)
+                };
+                endVal = {
+                    lat: parseFloat(document.getElementById('end-lat').value),
+                    lon: parseFloat(document.getElementById('end-lon').value)
+                };
+                waypointsVal = [startVal, endVal];
+            }
+ 
             const payload = {
                 id: document.getElementById('device-id').value.trim(),
                 name: document.getElementById('device-name').value.trim(),
                 type: document.getElementById('vehicle-type').value,
                 interval: parseInt(document.getElementById('report-interval').value),
-                start: {
-                    lat: parseFloat(document.getElementById('start-lat').value),
-                    lon: parseFloat(document.getElementById('start-lon').value)
-                },
-                end: {
-                    lat: parseFloat(document.getElementById('end-lat').value),
-                    lon: parseFloat(document.getElementById('end-lon').value)
-                },
+                start: startVal,
+                end: endVal,
+                route_mode: routeMode,
+                waypoints: waypointsVal,
                 min_speed: parseInt(document.getElementById('min-speed').value),
                 avg_speed: parseInt(document.getElementById('avg-speed').value),
                 max_speed: parseInt(document.getElementById('max-speed').value),

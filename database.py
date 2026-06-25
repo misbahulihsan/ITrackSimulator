@@ -40,7 +40,8 @@ def init_db():
         trip_type TEXT DEFAULT 'single',
         return_time TEXT,
         nonstop_layover_min INTEGER DEFAULT 60,
-        nonstop_layover_max INTEGER DEFAULT 60
+        nonstop_layover_max INTEGER DEFAULT 60,
+        waypoints TEXT
     )
     """)
     
@@ -53,8 +54,8 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     
-    # Add columns for RIT scheduling and name
-    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive", "name"]:
+    # Add columns for RIT scheduling, name, waypoints, and route_mode
+    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive", "name", "waypoints", "route_mode"]:
         try:
             cursor.execute(f"ALTER TABLE devices ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
@@ -181,6 +182,17 @@ def get_devices():
         except (IndexError, KeyError, sqlite3.OperationalError):
             name = ""
             
+        try:
+            waypoints_str = r["waypoints"]
+            waypoints = json.loads(waypoints_str) if waypoints_str else []
+        except (IndexError, KeyError, sqlite3.OperationalError, Exception):
+            waypoints = []
+            
+        try:
+            route_mode = r["route_mode"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            route_mode = "direction"
+            
         devices.append({
             "id": r["id"],
             "name": name or "",
@@ -199,7 +211,9 @@ def get_devices():
             "rita_depart": rita_depart or "",
             "rita_arrive": rita_arrive or "",
             "ritb_depart": ritb_depart or "",
-            "ritb_arrive": ritb_arrive or ""
+            "ritb_arrive": ritb_arrive or "",
+            "waypoints": waypoints,
+            "route_mode": route_mode or "direction"
         })
     return devices
 
@@ -234,6 +248,17 @@ def get_device(device_id):
         except (IndexError, KeyError, sqlite3.OperationalError):
             name = ""
             
+        try:
+            waypoints_str = r["waypoints"]
+            waypoints = json.loads(waypoints_str) if waypoints_str else []
+        except (IndexError, KeyError, sqlite3.OperationalError, Exception):
+            waypoints = []
+            
+        try:
+            route_mode = r["route_mode"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            route_mode = "direction"
+            
         return {
             "id": r["id"],
             "name": name or "",
@@ -252,7 +277,9 @@ def get_device(device_id):
             "rita_depart": rita_depart or "",
             "rita_arrive": rita_arrive or "",
             "ritb_depart": ritb_depart or "",
-            "ritb_arrive": ritb_arrive or ""
+            "ritb_arrive": ritb_arrive or "",
+            "waypoints": waypoints,
+            "route_mode": route_mode or "direction"
         }
     return None
 
@@ -263,8 +290,8 @@ def add_device(dev):
     INSERT OR REPLACE INTO devices (
         id, name, type, start_lat, start_lon, end_lat, end_lon, 
         min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
-        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
         dev.get("name", ""),
@@ -285,7 +312,9 @@ def add_device(dev):
         dev.get("rita_depart", ""),
         dev.get("rita_arrive", ""),
         dev.get("ritb_depart", ""),
-        dev.get("ritb_arrive", "")
+        dev.get("ritb_arrive", ""),
+        json.dumps(dev.get("waypoints", [])),
+        dev.get("route_mode", "direction")
     ))
     conn.commit()
     conn.close()
