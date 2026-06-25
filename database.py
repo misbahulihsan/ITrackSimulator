@@ -395,9 +395,16 @@ def log_rit_arrive(device_id, rit_type, date, scheduled_arrive, actual_arrive):
     conn.close()
 
 def get_rit_runs():
+    import datetime
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM rit_runs ORDER BY id DESC LIMIT 100")
+    
+    # Automatically clean up RIT runs older than 4 days
+    threshold = (datetime.date.today() - datetime.timedelta(days=4)).strftime("%Y-%m-%d")
+    cursor.execute("DELETE FROM rit_runs WHERE date < ?", (threshold,))
+    conn.commit()
+    
+    cursor.execute("SELECT * FROM rit_runs ORDER BY id DESC LIMIT 200")
     rows = cursor.fetchall()
     conn.close()
     

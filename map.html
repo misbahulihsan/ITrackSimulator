@@ -1019,6 +1019,12 @@
                 <button class="modal-close" id="btn-close-rit-report">&times;</button>
             </div>
             <div class="modal-body">
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; background: rgba(15, 23, 42, 0.3); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label for="rit-report-filter-device" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0;">Filter Device:</label>
+                    <select id="rit-report-filter-device" style="padding: 6px 12px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.9rem; outline: none; min-width: 180px; cursor: pointer;">
+                        <option value="all">All Devices</option>
+                    </select>
+                </div>
                 <div class="report-table-container">
                     <table class="report-table">
                         <thead>
@@ -2021,6 +2027,70 @@
             ritReportModal.classList.remove('active');
         }
 
+        let cachedRitRuns = [];
+
+        function populateDeviceFilterOptions() {
+            const select = document.getElementById('rit-report-filter-device');
+            const currentVal = select.value || 'all';
+            select.innerHTML = '<option value="all">All Devices</option>';
+            
+            // Collect unique device IDs from cached runs
+            const uniqueDeviceIds = [...new Set(cachedRitRuns.map(run => run.device_id))];
+            
+            uniqueDeviceIds.forEach(devId => {
+                const dev = devicesList.find(d => d.id === devId);
+                const displayName = dev && dev.name ? `${dev.name} (${devId})` : devId;
+                const opt = document.createElement('option');
+                opt.value = devId;
+                opt.textContent = displayName;
+                select.appendChild(opt);
+            });
+            
+            // Restore selection if it exists in the options
+            if ([...select.options].some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = 'all';
+            }
+        }
+
+        function renderRITReportTable() {
+            const tbody = document.getElementById('rit-report-tbody');
+            const filterVal = document.getElementById('rit-report-filter-device').value;
+            tbody.innerHTML = '';
+            
+            const filteredData = filterVal === 'all' 
+                ? cachedRitRuns 
+                : cachedRitRuns.filter(run => run.device_id === filterVal);
+                
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">No RIT run records found.</td></tr>`;
+                return;
+            }
+            
+            filteredData.forEach(run => {
+                const tr = document.createElement('tr');
+                const isRunning = (run.status || '').toLowerCase() === 'running';
+                const statusBadgeClass = isRunning ? 'rep-status-running' : 'rep-status-completed';
+                const statusText = isRunning ? 'On Going' : 'Complete';
+                
+                const dev = devicesList.find(d => d.id === run.device_id);
+                const displayName = dev && dev.name ? `${dev.name} (${run.device_id})` : run.device_id;
+                
+                tr.innerHTML = `
+                    <td style="font-weight: 600; color: var(--accent-color);">${displayName}</td>
+                    <td><span style="font-weight: 500;">${run.rit_type}</span></td>
+                    <td style="color: var(--text-secondary);">${run.date}</td>
+                    <td class="mono">${run.scheduled_depart || '-'}</td>
+                    <td class="mono" style="color: var(--success-color); font-weight: 500;">${run.actual_depart || '-'}</td>
+                    <td class="mono">${run.scheduled_arrive || '-'}</td>
+                    <td class="mono" style="color: var(--warning-color); font-weight: 500;">${run.actual_arrive || '-'}</td>
+                    <td><span class="report-status-badge ${statusBadgeClass}">${statusText}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function fetchRITReport() {
             const tbody = document.getElementById('rit-report-tbody');
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">🔄 Loading RIT runs report...</td></tr>`;
@@ -2028,32 +2098,9 @@
             fetch(`${API_BASE}/api/reports/rit`)
                 .then(r => r.json())
                 .then(data => {
-                    tbody.innerHTML = '';
-                    if (!data || data.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">No RIT run records found.</td></tr>`;
-                        return;
-                    }
-                    data.forEach(run => {
-                        const tr = document.createElement('tr');
-                        const isRunning = (run.status || '').toLowerCase() === 'running';
-                        const statusBadgeClass = isRunning ? 'rep-status-running' : 'rep-status-completed';
-                        const statusText = isRunning ? 'On Going' : 'Complete';
-                        
-                        const dev = devicesList.find(d => d.id === run.device_id);
-                        const displayName = dev && dev.name ? `${dev.name} (${run.device_id})` : run.device_id;
-                        
-                        tr.innerHTML = `
-                            <td style="font-weight: 600; color: var(--accent-color);">${displayName}</td>
-                            <td><span style="font-weight: 500;">${run.rit_type}</span></td>
-                            <td style="color: var(--text-secondary);">${run.date}</td>
-                            <td class="mono">${run.scheduled_depart || '-'}</td>
-                            <td class="mono" style="color: var(--success-color); font-weight: 500;">${run.actual_depart || '-'}</td>
-                            <td class="mono">${run.scheduled_arrive || '-'}</td>
-                            <td class="mono" style="color: var(--warning-color); font-weight: 500;">${run.actual_arrive || '-'}</td>
-                            <td><span class="report-status-badge ${statusBadgeClass}">${statusText}</span></td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
+                    cachedRitRuns = data || [];
+                    populateDeviceFilterOptions();
+                    renderRITReportTable();
                 })
                 .catch(err => {
                     console.error("Error fetching RIT runs:", err);
@@ -2065,6 +2112,7 @@
         btnCloseRitReport.addEventListener('click', closeRITReportModal);
         btnHideRitReport.addEventListener('click', closeRITReportModal);
         btnRefreshRitReport.addEventListener('click', fetchRITReport);
+        document.getElementById('rit-report-filter-device').addEventListener('change', renderRITReportTable);
 
         // Initialize App
         fetchServiceStatus();
