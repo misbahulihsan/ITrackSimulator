@@ -586,6 +586,34 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
                 actual_arrive_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(tick_time))
                 database.log_rit_arrive(device_id, active_rit_label, today_str, sched_arrive_str, actual_arrive_str)
                 
+                # Fetch actual departure from DB to include in notification
+                actual_depart_val = ""
+                try:
+                    conn = database.get_db()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT actual_depart FROM rit_runs 
+                        WHERE device_id = ? AND rit_type = ? AND date = ?
+                        ORDER BY id DESC LIMIT 1
+                    """, (device_id, active_rit_label, today_str))
+                    row = cursor.fetchone()
+                    if row:
+                        actual_depart_val = row["actual_depart"]
+                    conn.close()
+                except Exception as e:
+                    print(f"[WhatsApp] Error fetching departure time: {e}")
+                
+                send_whatsapp_notification(
+                    device_id=device_id,
+                    rit_label=active_rit_label,
+                    status_label="COMPLETED",
+                    date=today_str,
+                    scheduled_depart=sched_depart_str,
+                    actual_depart=actual_depart_val,
+                    scheduled_arrive=sched_arrive_str,
+                    actual_arrive=actual_arrive_str
+                )
+                
             if normalized_trip_type == "single":
                 state = "COMPLETED"
                 status_desc = "COMPLETED"
@@ -880,6 +908,72 @@ def sleep_gracefully(interval, tick_start, shutdown_event):
     if remainder > 0 and not shutdown_event.is_set():
         time.sleep(remainder)
 
+def send_whatsapp_notification(device_id, rit_label, status_label, date, scheduled_depart, actual_depart, scheduled_arrive, actual_arrive):
+    enabled = database.get_setting("wa_notif_enabled", "0") == "1"
+    if not enabled:
+        return
+    
+    number = database.get_setting("wa_target_number", "+6285727255841").strip()
+    api_url = database.get_setting("wa_api_url", "https://waha.misbahulihsan.com").strip()
+    api_key = database.get_setting("wa_api_key", "Aku123").strip()
+    
+    if not number or not api_url:
+        print("[WhatsApp] Number or API URL not configured.")
+        return
+        
+    clean_number = "".join(filter(str.isdigit, number))
+    if not clean_number:
+        print("[WhatsApp] Invalid phone number.")
+        return
+        
+    chat_id = f"{clean_number}@c.us"
+    
+    device_name = device_id
+    try:
+        devs = database.get_devices()
+        dev = next((d for d in devs if d["id"] == device_id), None)
+        if dev and dev.get("name"):
+            device_name = f"{dev['name']} ({device_id})"
+    except Exception:
+        pass
+        
+    message = (
+        f"🔔 *ITrack Simulator - RIT Report* 🔔\n\n"
+        f"*Device:* {device_name}\n"
+        f"*RIT Label:* {rit_label}\n"
+        f"*Date:* {date}\n"
+        f"*Status:* {status_label} ✅\n\n"
+        f"*Departure Details:*\n"
+        f"- Scheduled: {scheduled_depart or '-'}\n"
+        f"- Actual: {actual_depart or '-'}\n\n"
+        f"*Arrival Details:*\n"
+        f"- Scheduled: {scheduled_arrive or '-'}\n"
+        f"- Actual: {actual_arrive or '-'}"
+    )
+    
+    url = f"{api_url.rstrip('/')}/api/sendText"
+    payload = {
+        "session": "default",
+        "chatId": chat_id,
+        "text": message
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    if api_key:
+        headers["X-Api-Key"] = api_key
+        
+    def make_request():
+        try:
+            r = requests.post(url, json=payload, headers=headers, timeout=10)
+            print(f"[WhatsApp] Notification sent to {chat_id}. Response: {r.status_code}")
+        except Exception as e:
+            print(f"[WhatsApp] Failed to send notification: {e}")
+            
+    t = threading.Thread(target=make_request)
+    t.daemon = True
+    t.start()
+
 @app.before_request
 def check_auth():
     # Allow login.html and api/login to bypass auth
@@ -1090,6 +1184,24 @@ def get_status():
 def get_rit_report():
     runs = database.get_rit_runs()
     return jsonify(runs)
+
+@app.route('/api/settings/whatsapp', methods=['GET'])
+def get_whatsapp_settings():
+    return jsonify({
+        "enabled": database.get_setting("wa_notif_enabled", "0") == "1",
+        "number": database.get_setting("wa_target_number", "+6285727255841"),
+        "url": database.get_setting("wa_api_url", "https://waha.misbahulihsan.com"),
+        "key": database.get_setting("wa_api_key", "Aku123")
+    })
+
+@app.route('/api/settings/whatsapp', methods=['POST'])
+def save_whatsapp_settings():
+    data = request.json or {}
+    database.set_setting("wa_notif_enabled", "1" if data.get("enabled") else "0")
+    database.set_setting("wa_target_number", data.get("number", "+6285727255841").strip())
+    database.set_setting("wa_api_url", data.get("url", "https://waha.misbahulihsan.com").strip())
+    database.set_setting("wa_api_key", data.get("key", "Aku123").strip())
+    return jsonify({"success": True})
 
 @app.route('/api/service/status', methods=['GET'])
 def get_service_status():
