@@ -343,39 +343,71 @@
         }
 
         .device-item {
-            padding: 10px 12px;
-            background-color: rgba(15, 23, 42, 0.4);
+            padding: 12px 14px;
+            background-color: rgba(30, 41, 59, 0.4);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 12px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .device-item:hover, .device-item.active {
             border-color: var(--accent-color);
-            background-color: rgba(56, 189, 248, 0.05);
+            background-color: rgba(30, 41, 59, 0.75);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .device-info {
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .device-title-wrapper {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            max-width: 65%;
         }
 
-        .device-name {
-            font-size: 0.85rem;
-            font-weight: 600;
+        .device-display-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .device-id-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .device-badges {
             display: flex;
-            align-items: center;
             gap: 6px;
+            align-items: center;
+        }
+
+        .device-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 8px;
+            width: 100%;
         }
 
         .device-meta {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .device-actions {
@@ -1149,27 +1181,30 @@
                 
                 const isRunning = dev.status === "Running";
                 const badgeClass = isRunning ? "badge-running" : "badge-stopped";
-                const scheduleBadge = dev.start_time ? `<span class="badge badge-scheduled badge-status" style="margin-left: 5px;">${dev.start_time}</span>` : '';
+                const scheduleBadge = dev.start_time ? `<span class="badge badge-scheduled badge-status">${dev.start_time}</span>` : '';
                 
                 const displayName = dev.name ? dev.name : dev.id;
-                const idTag = (dev.name && dev.name !== dev.id) ? `<span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 6px;">(${dev.id})</span>` : '';
                 
                 item.innerHTML = `
-                    <div class="device-info">
-                        <div class="device-name">
-                            <span>${displayName}</span>
-                            ${idTag}
+                    <div class="device-header">
+                        <div class="device-title-wrapper">
+                            <span class="device-display-name" title="${displayName}">${displayName}</span>
+                            <span class="device-id-sub">#${dev.id}</span>
+                        </div>
+                        <div class="device-badges">
                             <span class="badge ${badgeClass} badge-status">${dev.status}</span>
                             ${scheduleBadge}
                         </div>
-                        <div class="device-meta">${dev.type.toUpperCase()} | ${dev.interval}s interval</div>
                     </div>
-                    <div class="device-actions">
-                        <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); toggleDevice('${dev.id}', ${isRunning})">
-                            ${isRunning ? 'Pause' : 'Start'}
-                        </button>
-                        <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editDevice('${dev.id}')">Edit</button>
-                        <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteDevice('${dev.id}')">Delete</button>
+                    <div class="device-body">
+                        <div class="device-meta">${dev.type.toUpperCase()} • ${dev.interval}s interval</div>
+                        <div class="device-actions">
+                            <button class="btn-secondary btn-xs" onclick="event.stopPropagation(); toggleDevice('${dev.id}', ${isRunning})" style="padding: 3px 6px;">
+                                ${isRunning ? '⏸ Pause' : '▶ Start'}
+                            </button>
+                            <button class="btn-secondary btn-xs" onclick="event.stopPropagation(); editDevice('${dev.id}')" style="padding: 3px 6px;">✏️ Edit</button>
+                            <button class="btn-danger btn-xs" onclick="event.stopPropagation(); deleteDevice('${dev.id}')" style="padding: 3px 6px;">🗑️ Delete</button>
+                        </div>
                     </div>
                 `;
                 
@@ -1407,8 +1442,7 @@
                 const latLng = [tel.lat, tel.lon];
                 const bearing = tel.bearing;
                 
-                const displayName = tel.name || (dev && dev.name) || id;
-                const popupTitle = (displayName !== id) ? `${displayName} (${id})` : id;
+                const popupTitle = tel.name || (dev && dev.name) || id;
                 
                 const popupContent = `
                     <div style="font-size: 0.85rem; font-weight: 500;">
