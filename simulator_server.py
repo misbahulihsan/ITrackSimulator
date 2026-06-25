@@ -50,12 +50,13 @@ def save_config(cfg):
     for dev in cfg.get("devices", []):
         cursor.execute("""
         INSERT OR REPLACE INTO devices (
-            id, type, start_lat, start_lon, end_lat, end_lon, 
+            id, name, type, start_lat, start_lon, end_lat, end_lon, 
             min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
             nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             dev["id"],
+            dev.get("name", ""),
             dev["type"],
             dev["start"]["lat"],
             dev["start"]["lon"],
@@ -681,7 +682,8 @@ def run_simulation(device, traccar_host, shutdown_event):
                 "distance_traveled": state_vars["distance_traveled"], "total_distance": total_dist,
                 "is_reversed": state_vars["is_reversed"],
                 "start": device["start"],
-                "end": device["end"]
+                "end": device["end"],
+                "name": device.get("name", device_id)
             }
             
         save_state_file_extended(
@@ -829,6 +831,7 @@ def add_device():
             
     new_device = {
         "id": data["id"],
+        "name": data.get("name", ""),
         "start": data["start"],
         "end": data["end"],
         "min_speed": int(data.get("min_speed", 20)),

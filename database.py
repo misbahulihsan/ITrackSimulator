@@ -26,6 +26,7 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS devices (
         id TEXT PRIMARY KEY,
+        name TEXT,
         type TEXT NOT NULL,
         start_lat REAL NOT NULL,
         start_lon REAL NOT NULL,
@@ -52,8 +53,8 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     
-    # Add columns for RIT scheduling
-    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive"]:
+    # Add columns for RIT scheduling and name
+    for col in ["rita_depart", "rita_arrive", "ritb_depart", "ritb_arrive", "name"]:
         try:
             cursor.execute(f"ALTER TABLE devices ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
@@ -175,8 +176,14 @@ def get_devices():
             ritb_depart = ""
             ritb_arrive = ""
             
+        try:
+            name = r["name"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            name = ""
+            
         devices.append({
             "id": r["id"],
+            "name": name or "",
             "type": r["type"],
             "start": {"lat": r["start_lat"], "lon": r["start_lon"]},
             "end": {"lat": r["end_lat"], "lon": r["end_lon"]},
@@ -222,8 +229,14 @@ def get_device(device_id):
             ritb_depart = ""
             ritb_arrive = ""
             
+        try:
+            name = r["name"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            name = ""
+            
         return {
             "id": r["id"],
+            "name": name or "",
             "type": r["type"],
             "start": {"lat": r["start_lat"], "lon": r["start_lon"]},
             "end": {"lat": r["end_lat"], "lon": r["end_lon"]},
@@ -248,12 +261,13 @@ def add_device(dev):
     cursor = conn.cursor()
     cursor.execute("""
     INSERT OR REPLACE INTO devices (
-        id, type, start_lat, start_lon, end_lat, end_lon, 
+        id, name, type, start_lat, start_lon, end_lat, end_lon, 
         min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
         nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
+        dev.get("name", ""),
         dev["type"],
         dev["start"]["lat"],
         dev["start"]["lon"],
