@@ -61,6 +61,11 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+    try:
+        cursor.execute("ALTER TABLE devices ADD COLUMN ferry_speed INTEGER DEFAULT 25")
+    except sqlite3.OperationalError:
+        pass
+
     # Create RIT runs report table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS rit_runs (
@@ -198,6 +203,11 @@ def get_devices():
         except (IndexError, KeyError, sqlite3.OperationalError):
             rit_label = "RIT-A"
             
+        try:
+            ferry_speed = r["ferry_speed"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            ferry_speed = 25
+            
         devices.append({
             "id": r["id"],
             "name": name or "",
@@ -207,6 +217,7 @@ def get_devices():
             "min_speed": r["min_speed"],
             "avg_speed": r["avg_speed"],
             "max_speed": r["max_speed"],
+            "ferry_speed": ferry_speed if ferry_speed is not None else 25,
             "interval": r["interval"],
             "start_time": r["start_time"],
             "trip_type": r["trip_type"],
@@ -270,6 +281,11 @@ def get_device(device_id):
         except (IndexError, KeyError, sqlite3.OperationalError):
             rit_label = "RIT-A"
             
+        try:
+            ferry_speed = r["ferry_speed"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            ferry_speed = 25
+            
         return {
             "id": r["id"],
             "name": name or "",
@@ -279,6 +295,7 @@ def get_device(device_id):
             "min_speed": r["min_speed"],
             "avg_speed": r["avg_speed"],
             "max_speed": r["max_speed"],
+            "ferry_speed": ferry_speed if ferry_speed is not None else 25,
             "interval": r["interval"],
             "start_time": r["start_time"],
             "trip_type": r["trip_type"],
@@ -301,9 +318,9 @@ def add_device(dev):
     cursor.execute("""
     INSERT OR REPLACE INTO devices (
         id, name, type, start_lat, start_lon, end_lat, end_lon, 
-        min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
+        min_speed, avg_speed, max_speed, ferry_speed, interval, start_time, trip_type, return_time,
         nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode, rit_label
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
         dev.get("name", ""),
@@ -315,6 +332,7 @@ def add_device(dev):
         dev["min_speed"],
         dev["avg_speed"],
         dev["max_speed"],
+        dev.get("ferry_speed", 25),
         dev["interval"],
         dev.get("start_time", ""),
         dev["trip_type"],

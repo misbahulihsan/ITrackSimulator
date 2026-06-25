@@ -51,10 +51,10 @@ def save_config(cfg):
         cursor.execute("""
         INSERT OR REPLACE INTO devices (
             id, name, type, start_lat, start_lon, end_lat, end_lon, 
-            min_speed, avg_speed, max_speed, interval, start_time, trip_type, return_time,
+            min_speed, avg_speed, max_speed, ferry_speed, interval, start_time, trip_type, return_time,
             nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive,
             waypoints, route_mode, rit_label
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             dev["id"],
             dev.get("name", ""),
@@ -66,6 +66,7 @@ def save_config(cfg):
             dev["min_speed"],
             dev["avg_speed"],
             dev["max_speed"],
+            dev.get("ferry_speed", 25),
             dev["interval"],
             dev.get("start_time", ""),
             dev["trip_type"],
@@ -113,8 +114,9 @@ def interpolate_position(route, segments_dist, cumulative_dist, target_dist):
     idx = max(0, min(idx, len(route) - 2))
     
     seg_len = segments_dist[idx]
+    is_ferry = route[idx].get("is_ferry", False)
     if seg_len == 0:
-        pt = route[idx]
+        pt = {"lat": route[idx]["lat"], "lon": route[idx]["lon"], "is_ferry": is_ferry}
         bearing = calculate_bearing(
             route[idx]["lat"], route[idx]["lon"],
             route[idx + 1]["lat"], route[idx + 1]["lon"]
@@ -124,7 +126,7 @@ def interpolate_position(route, segments_dist, cumulative_dist, target_dist):
         ratio = max(0.0, min(1.0, ratio))
         lat = route[idx]["lat"] + (route[idx + 1]["lat"] - route[idx]["lat"]) * ratio
         lon = route[idx]["lon"] + (route[idx + 1]["lon"] - route[idx]["lon"]) * ratio
-        pt = {"lat": lat, "lon": lon}
+        pt = {"lat": lat, "lon": lon, "is_ferry": is_ferry}
         bearing = calculate_bearing(
             route[idx]["lat"], route[idx]["lon"],
             route[idx + 1]["lat"], route[idx + 1]["lon"]
@@ -170,7 +172,7 @@ def get_route(device, traccar_host):
     url = (
         "https://router.project-osrm.org/route/v1/driving/"
         f"{coords_str}"
-        "?overview=full&geometries=geojson"
+        "?overview=full&geometries=geojson&steps=true"
     )
     
     try:
@@ -181,22 +183,79 @@ def get_route(device, traccar_host):
         if "routes" not in data or not data["routes"]:
             raise Exception("No routes found in OSRM response")
             
-        coordinates = data["routes"][0]["geometry"]["coordinates"]
-        route = [{"lat": c[1], "lon": c[0]} for c in coordinates]
+        route_data = data["routes"][0]
+        legs = route_data.get("legs", [])
         
+        route = []
+        for leg in legs:
+            steps = leg.get("steps", [])
+            for step in steps:
+                mode = step.get("mode")
+                is_ferry = (mode == "ferry")
+                step_coords = step.get("geometry", {}).get("coordinates", [])
+                
+                for coord in step_coords:
+                    pt = {"lat": coord[1], "lon": coord[0], "is_ferry": is_ferry}
+                    if not route:
+                        route.append(pt)
+                    else:
+                        last_pt = route[-1]
+                        if last_pt["lat"] == pt["lat"] and last_pt["lon"] == pt["lon"]:
+                            if is_ferry:
+                                last_pt["is_ferry"] = True
+                        else:
+                            route.append(pt)
+                            
         with open(json_path, "w") as f:
             json.dump(route, f, indent=2)
             
+        # Segment coordinates to create FeatureCollection of LineStrings
+        features = []
+        current_segment = []
+        current_is_ferry = None
+        
+        for pt in route:
+            is_ferry = pt.get("is_ferry", False)
+            coord = [pt["lon"], pt["lat"]]
+            
+            if current_is_ferry is None:
+                current_is_ferry = is_ferry
+                current_segment.append(coord)
+            elif is_ferry == current_is_ferry:
+                current_segment.append(coord)
+            else:
+                # Add overlapping boundary point
+                current_segment.append(coord)
+                features.append({
+                    "type": "Feature",
+                    "properties": {
+                        "deviceId": device_id,
+                        "isFerry": current_is_ferry
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": current_segment
+                    }
+                })
+                current_segment = [coord]
+                current_is_ferry = is_ferry
+                
+        if current_segment:
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "deviceId": device_id,
+                    "isFerry": current_is_ferry
+                },
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": current_segment
+                }
+            })
+            
         geojson = {
-            "type": "Feature",
-            "properties": {
-                "deviceId": device_id,
-                "name": f"Route for {device_id}"
-            },
-            "geometry": {
-                "type": "LineString",
-                "coordinates": coordinates
-            }
+            "type": "FeatureCollection",
+            "features": features
         }
         with open(geojson_path, "w") as f:
             json.dump(geojson, f, indent=2)
@@ -469,35 +528,48 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
             accel_factor = 3.0
             corner_min, corner_max = 10, 18
             
-        if has_corner:
-            target_speed = random.randint(corner_min, corner_max)
-            status_desc = "CORNERING"
+        # Check if the current segment is a ferry segment
+        is_on_ferry = pt.get("is_ferry", False)
+        
+        if is_on_ferry:
+            ferry_speed = device.get("ferry_speed", 25)
+            target_speed = ferry_speed
+            status_desc = "ON FERRY"
+            accel_factor = 2.0  # smooth acceleration for ferry
         else:
-            ideal_speed = None
-            if normalized_trip_type == "single" and arrive_time_str:
-                remaining_dist = total_dist - distance_traveled
-                ideal_speed = get_ideal_speed(arrive_time_str, tick_time, remaining_dist, min_speed, max_speed)
-                
-            if ideal_speed is not None:
-                target_speed = ideal_speed
-                status_desc = "CRUISING"
+            if has_corner:
+                target_speed = random.randint(corner_min, corner_max)
+                status_desc = "CORNERING"
             else:
-                roll = random.random()
-                if roll < speeding_chance:
-                    target_speed = random.randint(max_speed - 5, max_speed + 5)
-                    status_desc = "SPEEDING"
-                elif roll < speeding_chance + 0.15:
-                    target_speed = random.randint(min_speed, max(min_speed, avg_speed - 10))
-                    status_desc = "TRAFFIC"
-                else:
-                    target_speed = random.randint(avg_speed - 5, avg_speed + 5)
+                ideal_speed = None
+                if normalized_trip_type == "single" and arrive_time_str:
+                    remaining_dist = total_dist - distance_traveled
+                    ideal_speed = get_ideal_speed(arrive_time_str, tick_time, remaining_dist, min_speed, max_speed)
+                    
+                if ideal_speed is not None:
+                    target_speed = ideal_speed
                     status_desc = "CRUISING"
+                else:
+                    roll = random.random()
+                    if roll < speeding_chance:
+                        target_speed = random.randint(max_speed - 5, max_speed + 5)
+                        status_desc = "SPEEDING"
+                    elif roll < speeding_chance + 0.15:
+                        target_speed = random.randint(min_speed, max(min_speed, avg_speed - 10))
+                        status_desc = "TRAFFIC"
+                    else:
+                        target_speed = random.randint(avg_speed - 5, avg_speed + 5)
+                        status_desc = "CRUISING"
                 
         # Physics acceleration
         max_change = accel_factor * interval
         diff = target_speed - current_speed
         current_speed += max(-max_change, min(max_change, diff))
-        current_speed = max(min_speed, min(current_speed, max_speed + 10))
+        
+        if is_on_ferry:
+            current_speed = max(5.0, min(current_speed, target_speed + 5))
+        else:
+            current_speed = max(min_speed, min(current_speed, max_speed + 10))
         
         # Move distance
         distance_moved = (current_speed * 1000.0 / 3600.0) * interval
@@ -541,14 +613,15 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
             # Re-interpolate at new position
             pt, bearing, idx = interpolate_position(route, segments_dist, cumulative_dist, distance_traveled)
             
-            # Check random event
-            event_roll = random.random()
-            if event_roll < traffic_light_chance:
-                state = "TRAFFIC_LIGHT"
-                state_timer = random.randint(20, 60)
-            elif event_roll < traffic_light_chance + parking_chance:
-                state = "PARKED"
-                state_timer = random.randint(60, 180)
+            # Check random event (only if not on ferry)
+            if not pt.get("is_ferry", False):
+                event_roll = random.random()
+                if event_roll < traffic_light_chance:
+                    state = "TRAFFIC_LIGHT"
+                    state_timer = random.randint(20, 60)
+                elif event_roll < traffic_light_chance + parking_chance:
+                    state = "PARKED"
+                    state_timer = random.randint(60, 180)
                 
         state_vars.update({
             "state": state, "lat": pt["lat"], "lon": pt["lon"], "speed": int(current_speed), "bearing": bearing,
@@ -732,7 +805,7 @@ def run_simulation(device, traccar_host, shutdown_event):
             active_rit_label = "RIT-B" if (normalized_trip_type == "single" and rit_label == "RIT-B") or (normalized_trip_type == "nonstop" and state_vars["is_reversed"]) else "RIT-A"
             telemetry_data[device_id] = {
                 "lat": pt["lat"], "lon": pt["lon"], "speed": speed, "bearing": bearing,
-                "state": f"{state_label} ({active_rit_label})" if state_label in ["DRIVING", "CRUISING", "CORNERING", "SPEEDING", "TRAFFIC"] or state_label.startswith("LAYOVER") else state_label,
+                "state": f"{state_label} ({active_rit_label})" if state_label in ["DRIVING", "CRUISING", "CORNERING", "SPEEDING", "TRAFFIC", "ON FERRY"] or state_label.startswith("LAYOVER") else state_label,
                 "progress": progress_val,
                 "distance_traveled": state_vars["distance_traveled"], "total_distance": total_dist,
                 "is_reversed": state_vars["is_reversed"],
@@ -895,6 +968,7 @@ def add_device():
         "min_speed": int(data.get("min_speed", 20)),
         "avg_speed": int(data.get("avg_speed", 50)),
         "max_speed": int(data.get("max_speed", 80)),
+        "ferry_speed": int(data.get("ferry_speed", 25)),
         "type": data.get("type", "car"),
         "start_time": data.get("start_time", ""),
         "trip_type": data.get("trip_type", "single"),
@@ -924,12 +998,17 @@ def add_device():
         )
         if coords_changed:
             safe_name = data["id"].lower().replace(" ", "_")
-            state_file = os.path.join(STATE_DIR, f"{safe_name}_state.json")
-            if os.path.exists(state_file):
-                try:
-                    os.remove(state_file)
-                except Exception:
-                    pass
+            files_to_delete = [
+                os.path.join(STATE_DIR, f"{safe_name}_state.json"),
+                os.path.join(ROUTES_DIR, f"{safe_name}.json"),
+                os.path.join(ROUTES_DIR, f"{safe_name}.geojson")
+            ]
+            for p in files_to_delete:
+                if os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception:
+                        pass
         stop_simulation_thread(data["id"])
         devices[idx] = new_device
     else:
@@ -963,14 +1042,17 @@ def delete_device(device_id):
             del telemetry_data[device_id]
             
     safe_name = device_id.lower().replace(" ", "_")
-    for folder in [ROUTES_DIR, STATE_DIR]:
-        for ext in [".json", ".geojson"]:
-            path = os.path.join(folder, f"{safe_name}{ext}")
-            if os.path.exists(path):
-                try:
-                    os.remove(path)
-                except Exception:
-                    pass
+    files_to_delete = [
+        os.path.join(ROUTES_DIR, f"{safe_name}.json"),
+        os.path.join(ROUTES_DIR, f"{safe_name}.geojson"),
+        os.path.join(STATE_DIR, f"{safe_name}_state.json")
+    ]
+    for path in files_to_delete:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
                     
     return jsonify({"success": True})
 

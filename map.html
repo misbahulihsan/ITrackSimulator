@@ -753,6 +753,34 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             position: relative;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+        }
+        .waypoint-row.dragging {
+            opacity: 0.4;
+            transform: scale(0.97);
+            border: 1px dashed var(--accent-color);
+            background: rgba(56, 189, 248, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .waypoint-drag-handle {
+            cursor: grab;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1;
+            user-select: none;
+            width: 20px;
+            height: 20px;
+            margin-right: 4px;
+            transition: color 0.15s ease;
+        }
+        .waypoint-drag-handle:hover {
+            color: var(--text-primary);
+        }
+        .waypoint-drag-handle:active {
+            cursor: grabbing;
         }
         .waypoint-row-header {
             display: flex;
@@ -786,6 +814,20 @@
         .waypoint-coords-grid {
             display: flex;
             gap: 8px;
+        }
+        .waypoint-tooltip {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-primary) !important;
+            font-size: 0.7rem !important;
+            font-weight: 600 !important;
+            border-radius: 6px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+            padding: 4px 8px !important;
+            backdrop-filter: blur(4px);
+        }
+        .waypoint-tooltip::before {
+            border-top-color: rgba(15, 23, 42, 0.85) !important;
         }
     </style>
 </head>
@@ -899,6 +941,10 @@
                         <div class="form-group">
                             <label for="avg-speed">Avg Speed (km/h)</label>
                             <input type="number" id="avg-speed" value="50" min="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ferry-speed">Ferry Speed (km/h)</label>
+                            <input type="number" id="ferry-speed" value="25" min="5" required>
                         </div>
                         <div class="form-group" id="start-time-group">
                             <label for="start-time">Start Time (Optional)</label>
@@ -1202,8 +1248,6 @@
             clearPickedMarkers();
         });
 
-        let pickedWaypointMarkers = {}; // index -> L.marker
-
         function clearPickedMarkers() {
             if (pickedStartMarker) {
                 map.removeLayer(pickedStartMarker);
@@ -1213,10 +1257,12 @@
                 map.removeLayer(pickedEndMarker);
                 pickedEndMarker = null;
             }
-            Object.keys(pickedWaypointMarkers).forEach(idx => {
-                map.removeLayer(pickedWaypointMarkers[idx]);
+            document.querySelectorAll('.waypoint-row').forEach(row => {
+                if (row._leafletMarker) {
+                    map.removeLayer(row._leafletMarker);
+                    row._leafletMarker = null;
+                }
             });
-            pickedWaypointMarkers = {};
             pickingMode = null;
             map.getContainer().style.cursor = '';
             document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
@@ -1269,6 +1315,11 @@
                 labelEl.className = `waypoint-label badge ${labelClass}`;
                 labelEl.textContent = labelText;
                 
+                if (row._leafletMarker) {
+                    row._leafletMarker.setPopupContent(`Picked ${labelText}`);
+                    row._leafletMarker.setTooltipContent(labelText);
+                }
+                
                 // Disable/hide remove button if count <= 2
                 if (total <= 2) {
                     removeBtn.style.display = 'none';
@@ -1293,9 +1344,15 @@
         function createWaypointRow(lat = '', lon = '') {
             const row = document.createElement('div');
             row.className = 'waypoint-row';
+            row.setAttribute('draggable', 'false');
+            row._leafletMarker = null;
+            
             row.innerHTML = `
                 <div class="waypoint-row-header">
-                    <span class="waypoint-label">Waypoint</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="waypoint-drag-handle" title="Drag to reorder">⠿</span>
+                        <span class="waypoint-label">Waypoint</span>
+                    </div>
                     <button type="button" class="btn-remove-waypoint">&times; Remove</button>
                 </div>
                 <div class="waypoint-coords-grid">
@@ -1305,8 +1362,30 @@
                 </div>
             `;
             
+            const handle = row.querySelector('.waypoint-drag-handle');
+            handle.addEventListener('mousedown', () => {
+                row.setAttribute('draggable', 'true');
+            });
+            handle.addEventListener('mouseup', () => {
+                row.setAttribute('draggable', 'false');
+            });
+            
+            row.addEventListener('dragstart', (e) => {
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                row.setAttribute('draggable', 'false');
+                updateWaypointLabels();
+            });
+            
             row.querySelector('.btn-remove-waypoint').onclick = (e) => {
                 e.preventDefault();
+                if (row._leafletMarker) {
+                    map.removeLayer(row._leafletMarker);
+                }
                 row.remove();
                 updateWaypointLabels();
             };
@@ -1314,9 +1393,9 @@
             return row;
         }
 
-        function updateWaypointMarkerOnMap(idx, lat, lng) {
-            if (pickedWaypointMarkers[idx]) {
-                map.removeLayer(pickedWaypointMarkers[idx]);
+        function updateWaypointMarkerOnMap(idx, lat, lng, row) {
+            if (row._leafletMarker) {
+                map.removeLayer(row._leafletMarker);
             }
             let label = "Waypoint";
             const total = getWaypointCount();
@@ -1324,7 +1403,19 @@
             else if (idx === total - 1) label = "End Point (A)";
             else label = `Waypoint ${idx}`;
             
-            pickedWaypointMarkers[idx] = L.marker([lat, lng]).addTo(map).bindPopup(`Picked ${label}`).openPopup();
+            const latInput = row.querySelector('.waypoint-lat');
+            const lonInput = row.querySelector('.waypoint-lon');
+            
+            const marker = L.marker([lat, lng], { draggable: true }).addTo(map)
+                .bindPopup(`Picked ${label}`)
+                .bindTooltip(label, { permanent: true, direction: 'top', className: 'waypoint-tooltip' });
+            marker.on('dragend', (event) => {
+                const pos = event.target.getLatLng();
+                latInput.value = pos.lat.toFixed(6);
+                lonInput.value = pos.lng.toFixed(6);
+            });
+            row._leafletMarker = marker;
+            marker.openPopup();
         }
 
         function toggleRouteModeUI(mode) {
@@ -1383,6 +1474,88 @@
                 endLat.setAttribute('required', 'required');
                 endLon.setAttribute('required', 'required');
             }
+            rebuildMarkersFromInputs();
+        }
+
+        function rebuildMarkersFromInputs() {
+            if (pickedStartMarker) {
+                map.removeLayer(pickedStartMarker);
+                pickedStartMarker = null;
+            }
+            if (pickedEndMarker) {
+                map.removeLayer(pickedEndMarker);
+                pickedEndMarker = null;
+            }
+            document.querySelectorAll('.waypoint-row').forEach(row => {
+                if (row._leafletMarker) {
+                    map.removeLayer(row._leafletMarker);
+                    row._leafletMarker = null;
+                }
+            });
+            
+            const mode = document.getElementById('route-mode').value;
+            if (mode === 'multiple') {
+                const rows = document.querySelectorAll('.waypoint-row');
+                rows.forEach((row, idx) => {
+                    const latVal = parseFloat(row.querySelector('.waypoint-lat').value);
+                    const lonVal = parseFloat(row.querySelector('.waypoint-lon').value);
+                    if (!isNaN(latVal) && !isNaN(lonVal)) {
+                        updateWaypointMarkerOnMap(idx, latVal, lonVal, row);
+                    }
+                });
+            } else {
+                const startLatVal = parseFloat(document.getElementById('start-lat').value);
+                const startLonVal = parseFloat(document.getElementById('start-lon').value);
+                const endLatVal = parseFloat(document.getElementById('end-lat').value);
+                const endLonVal = parseFloat(document.getElementById('end-lon').value);
+                
+                if (!isNaN(startLatVal) && !isNaN(startLonVal)) {
+                    pickedStartMarker = L.marker([startLatVal, startLonVal], { draggable: true })
+                        .addTo(map).bindPopup("Picked Start Location")
+                        .bindTooltip("Start Location (D)", { permanent: true, direction: "top", className: "waypoint-tooltip" });
+                    pickedStartMarker.on('dragend', (event) => {
+                        const pos = event.target.getLatLng();
+                        document.getElementById('start-lat').value = pos.lat.toFixed(6);
+                        document.getElementById('start-lon').value = pos.lng.toFixed(6);
+                    });
+                }
+                if (!isNaN(endLatVal) && !isNaN(endLonVal)) {
+                    pickedEndMarker = L.marker([endLatVal, endLonVal], { draggable: true })
+                        .addTo(map).bindPopup("Picked End Location")
+                        .bindTooltip("End Location (A)", { permanent: true, direction: "top", className: "waypoint-tooltip" });
+                    pickedEndMarker.on('dragend', (event) => {
+                        const pos = event.target.getLatLng();
+                        document.getElementById('end-lat').value = pos.lat.toFixed(6);
+                        document.getElementById('end-lon').value = pos.lng.toFixed(6);
+                    });
+                }
+            }
+        }
+
+        const waypointContainer = document.getElementById('waypoint-list-container');
+        waypointContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const dragging = document.querySelector('.waypoint-row.dragging');
+            if (!dragging) return;
+            const afterElement = getDragAfterElement(waypointContainer, e.clientY);
+            if (afterElement == null) {
+                waypointContainer.appendChild(dragging);
+            } else {
+                waypointContainer.insertBefore(dragging, afterElement);
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.waypoint-row:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
         // Map Click Picker Event
@@ -1392,25 +1565,46 @@
             const lng = e.latlng.lng;
             
             if (pickingMode === 'start') {
-                document.getElementById('start-lat').value = lat.toFixed(6);
-                document.getElementById('start-lon').value = lng.toFixed(6);
+                const latInput = document.getElementById('start-lat');
+                const lonInput = document.getElementById('start-lon');
+                latInput.value = lat.toFixed(6);
+                lonInput.value = lng.toFixed(6);
                 if (pickedStartMarker) map.removeLayer(pickedStartMarker);
-                pickedStartMarker = L.marker([lat, lng]).addTo(map).bindPopup("Picked Start Location").openPopup();
+                pickedStartMarker = L.marker([lat, lng], { draggable: true })
+                    .addTo(map).bindPopup("Picked Start Location")
+                    .bindTooltip("Start Location (D)", { permanent: true, direction: "top", className: "waypoint-tooltip" }).openPopup();
+                pickedStartMarker.on('dragend', (event) => {
+                    const pos = event.target.getLatLng();
+                    latInput.value = pos.lat.toFixed(6);
+                    lonInput.value = pos.lng.toFixed(6);
+                });
                 document.getElementById('btn-pick-start').textContent = "📍 Pick on Map";
             } else if (pickingMode === 'end') {
-                document.getElementById('end-lat').value = lat.toFixed(6);
-                document.getElementById('end-lon').value = lng.toFixed(6);
+                const latInput = document.getElementById('end-lat');
+                const lonInput = document.getElementById('end-lon');
+                latInput.value = lat.toFixed(6);
+                lonInput.value = lng.toFixed(6);
                 if (pickedEndMarker) map.removeLayer(pickedEndMarker);
-                pickedEndMarker = L.marker([lat, lng]).addTo(map).bindPopup("Picked End Location").openPopup();
+                pickedEndMarker = L.marker([lat, lng], { draggable: true })
+                    .addTo(map).bindPopup("Picked End Location")
+                    .bindTooltip("End Location (A)", { permanent: true, direction: "top", className: "waypoint-tooltip" }).openPopup();
+                pickedEndMarker.on('dragend', (event) => {
+                    const pos = event.target.getLatLng();
+                    latInput.value = pos.lat.toFixed(6);
+                    lonInput.value = pos.lng.toFixed(6);
+                });
                 document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
             } else if (typeof pickingMode === 'number') {
                 const idx = pickingMode;
-                const latInput = document.getElementById(`waypoint-lat-${idx}`);
-                const lonInput = document.getElementById(`waypoint-lon-${idx}`);
-                if (latInput && lonInput) {
-                    latInput.value = lat.toFixed(6);
-                    lonInput.value = lng.toFixed(6);
-                    updateWaypointMarkerOnMap(idx, lat, lng);
+                const row = document.querySelectorAll('.waypoint-row')[idx];
+                if (row) {
+                    const latInput = row.querySelector('.waypoint-lat');
+                    const lonInput = row.querySelector('.waypoint-lon');
+                    if (latInput && lonInput) {
+                        latInput.value = lat.toFixed(6);
+                        lonInput.value = lng.toFixed(6);
+                        updateWaypointMarkerOnMap(idx, lat, lng, row);
+                    }
                 }
                 const btn = document.getElementById(`btn-pick-waypoint-${idx}`);
                 if (btn) btn.textContent = "📍 Pick";
@@ -1525,6 +1719,26 @@
             });
         }
 
+        // Style function for GeoJSON routes (dashed for ferry, solid for driving)
+        function getRouteStyle(feature, isActive, devColor) {
+            const isFerry = feature.properties && feature.properties.isFerry;
+            if (isActive) {
+                return {
+                    color: isFerry ? '#38bdf8' : 'var(--accent-color)',
+                    weight: isFerry ? 4.5 : 5,
+                    opacity: 0.85,
+                    dashArray: isFerry ? '6, 10' : null
+                };
+            } else {
+                return {
+                    color: isFerry ? '#0284c7' : devColor,
+                    weight: isFerry ? 3 : 3.5,
+                    opacity: isFerry ? 0.7 : 0.45,
+                    dashArray: isFerry ? '4, 8' : null
+                };
+            }
+        }
+
         // Load route GeoJSON path from server static routes folder
         function loadRouteGeoJSON(devId) {
             const safeName = devId.toLowerCase().replace(/ /g, '_');
@@ -1538,29 +1752,30 @@
                 .then(data => {
                     if (!data) return;
                     
-                    // GeoJSON coordinates are [lon, lat], map expects [lat, lon]
-                    const latLons = data.geometry.coordinates.map(c => [c[1], c[0]]);
                     const dev = devicesList.find(d => d.id === devId);
                     const type = dev ? dev.type : 'car';
                     const color = VEHICLE_COLORS[type] || '#94a3b8';
-                    const poly = L.polyline(latLons, {
-                        color: color,
-                        weight: 3.5,
-                        opacity: 0.45,
-                        className: 'route-glow-inactive'
-                    }).addTo(map);
+                    
+                    // Support both single Feature (old) and FeatureCollection (new)
+                    let poly;
+                    if (data.type === 'FeatureCollection') {
+                        poly = L.geoJSON(data, {
+                            style: function(f) {
+                                return getRouteStyle(f, devId === activeDeviceID, color);
+                            }
+                        }).addTo(map);
+                    } else {
+                        // Fallback for old simple geometry formats
+                        const latLons = data.geometry.coordinates.map(c => [c[1], c[0]]);
+                        poly = L.polyline(latLons, {
+                            color: devId === activeDeviceID ? 'var(--accent-color)' : color,
+                            weight: devId === activeDeviceID ? 5 : 3.5,
+                            opacity: devId === activeDeviceID ? 0.85 : 0.45,
+                            className: devId === activeDeviceID ? 'route-glow-active' : 'route-glow-inactive'
+                        }).addTo(map);
+                    }
                     
                     routePaths[devId] = poly;
-                    
-                    // If active, highlight
-                    if (devId === activeDeviceID) {
-                        poly.setStyle({
-                            color: 'var(--accent-color)',
-                            weight: 5,
-                            opacity: 0.85,
-                            className: 'route-glow-active'
-                        });
-                    }
                 })
                 .catch(err => {});
         }
@@ -1573,23 +1788,26 @@
             // Highlight route paths
             Object.keys(routePaths).forEach(id => {
                 const poly = routePaths[id];
-                if (id === devId) {
-                    poly.setStyle({
-                        color: 'var(--accent-color)',
-                        weight: 5,
-                        opacity: 0.85,
-                        className: 'route-glow-active'
+                const dev = devicesList.find(d => d.id === id);
+                const color = dev ? VEHICLE_COLORS[dev.type] : '#94a3b8';
+                const isActive = (id === devId);
+                
+                if (poly.eachLayer) {
+                    poly.eachLayer(layer => {
+                        layer.setStyle(getRouteStyle(layer.feature, isActive, color));
                     });
+                } else if (poly.setStyle) {
+                    // Fallback for L.polyline
+                    poly.setStyle({
+                        color: isActive ? 'var(--accent-color)' : color,
+                        weight: isActive ? 5 : 3.5,
+                        opacity: isActive ? 0.85 : 0.45,
+                        className: isActive ? 'route-glow-active' : 'route-glow-inactive'
+                    });
+                }
+                
+                if (isActive) {
                     map.fitBounds(poly.getBounds(), { padding: [50, 50] });
-                } else {
-                    const dev = devicesList.find(d => d.id === id);
-                    const color = dev ? VEHICLE_COLORS[dev.type] : '#94a3b8';
-                    poly.setStyle({
-                        color: color,
-                        weight: 3.5,
-                        opacity: 0.45,
-                        className: 'route-glow-inactive'
-                    });
                 }
             });
 
@@ -1648,6 +1866,7 @@
             document.getElementById('min-speed').value = dev.min_speed;
             document.getElementById('avg-speed').value = dev.avg_speed;
             document.getElementById('max-speed').value = dev.max_speed;
+            document.getElementById('ferry-speed').value = dev.ferry_speed || 25;
             document.getElementById('start-time').value = dev.start_time || '';
             document.getElementById('return-time').value = dev.return_time || '';
             document.getElementById('rita-depart').value = dev.rita_depart || '';
@@ -1737,6 +1956,7 @@
                 min_speed: parseInt(document.getElementById('min-speed').value),
                 avg_speed: parseInt(document.getElementById('avg-speed').value),
                 max_speed: parseInt(document.getElementById('max-speed').value),
+                ferry_speed: parseInt(document.getElementById('ferry-speed').value || 25),
                 start_time: document.getElementById('start-time').value.trim(),
                 trip_type: document.getElementById('trip-type').value,
                 rit_label: document.getElementById('rit-label').value,
@@ -1874,8 +2094,8 @@
             const startCoords = [start.lat, start.lon];
             const endCoords = [end.lat, end.lon];
 
-            const departCoords = isReversed ? endCoords : startCoords;
-            const arriveCoords = isReversed ? startCoords : endCoords;
+            const departCoords = startCoords;
+            const arriveCoords = endCoords;
 
             const departIcon = L.divIcon({
                 className: 'leaflet-rit-label',
