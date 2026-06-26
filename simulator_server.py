@@ -953,8 +953,8 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
     except Exception as e:
         print(f"[WhatsApp] Error fetching device details/coordinates: {e}")
         
-    dep_link_str = f"https://www.google.com/maps/search/?api=1&query={dep_lat},{dep_lon}" if dep_lat is not None else "-"
-    arr_link_str = f"https://www.google.com/maps/search/?api=1&query={arr_lat},{arr_lon}" if arr_lat is not None else "-"
+    dep_link_str = f"https://www.google.com/maps?q={dep_lat},{dep_lon}" if dep_lat is not None else "-"
+    arr_link_str = f"https://www.google.com/maps?q={arr_lat},{arr_lon}" if arr_lat is not None else "-"
         
     message = (
         f"🔔 *ITrack Simulator - RIT Report* 🔔\n\n"
