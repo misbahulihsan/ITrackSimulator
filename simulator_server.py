@@ -939,10 +939,10 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
             if dev.get("name"):
                 device_name = f"{dev['name']} ({device_id})"
             
-            s_lat = dev.get("start_lat")
-            s_lon = dev.get("start_lon")
-            e_lat = dev.get("end_lat")
-            e_lon = dev.get("end_lon")
+            s_lat = dev.get("start", {}).get("lat")
+            s_lon = dev.get("start", {}).get("lon")
+            e_lat = dev.get("end", {}).get("lat")
+            e_lon = dev.get("end", {}).get("lon")
             
             if rit_label == "RIT-B":
                 dep_lat, dep_lon = e_lat, e_lon
