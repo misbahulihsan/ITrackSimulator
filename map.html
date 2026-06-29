@@ -846,58 +846,33 @@
             right: 15px;
             z-index: 1000;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px 16px;
-            gap: 10px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 8px 14px;
+            gap: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
-        .top-bar-row {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .map-top-bar::-webkit-scrollbar {
+            display: none;
         }
-        .row-title {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-secondary);
-            font-weight: 700;
-        }
-        .top-bar-items {
+        .telemetry-item {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        .top-bar-row-divider {
-            height: 1px;
-            background: var(--border-color);
-            width: 100%;
-        }
-        .indicator-item, .telemetry-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
+            gap: 5px;
+            font-size: 0.75rem;
+            white-space: nowrap;
         }
         .telemetry-label {
             color: var(--text-secondary);
             font-weight: 500;
-        }
-        .btn-group-xs {
-            display: flex;
-            gap: 6px;
-        }
-        
-        @media (max-width: 1024px) {
-            .top-bar-items {
-                gap: 10px;
-            }
         }
     </style>
 </head>
@@ -909,6 +884,24 @@
             <div class="sidebar-header">
                 <h1><span>ITrack Control Panel</span></h1>
                 <p>Full-Stack Traccar Device Simulator</p>
+                
+                <!-- Server Status & Service Control -->
+                <div class="global-service-control" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                        <div class="status-indicator" style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot" id="service-status-dot"></span>
+                            <span class="status-text" id="service-status-text" style="font-weight: 500;">Service Loading...</span>
+                        </div>
+                        <div class="service-actions" style="display: flex; gap: 6px;">
+                            <button class="btn-success btn-xs" id="btn-service-start">▶ Start</button>
+                            <button class="btn-danger btn-xs" id="btn-service-stop">⏸ Stop</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); border-top: 1px dashed var(--border-color); padding-top: 6px; margin-top: 2px;">
+                        <span>Traccar: <strong id="server-host-label" style="color: var(--accent-color);">checking...</strong></span>
+                        <span>API: <strong style="color: var(--success-color);">ONLINE</strong></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Device List Section -->
@@ -1088,67 +1081,35 @@
         </button>
 
         <div id="map-container">
-            <!-- Floating Map Top Bar -->
+            <!-- Floating Map Top Bar (Telemetry Only) -->
             <div id="map-top-bar" class="map-top-bar">
-                <!-- Row 1: Server Status & Actions -->
-                <div class="top-bar-row server-row">
-                    <span class="row-title">🖥️ Server Status & Service Control</span>
-                    <div class="top-bar-items">
-                        <span class="indicator-item">
-                            <span class="status-dot" id="service-status-dot"></span>
-                            <span class="status-text" id="service-status-text">Service Loading...</span>
-                        </span>
-                        <span class="indicator-item">
-                            <span class="telemetry-label">Traccar Target:</span>
-                            <strong id="server-host-label" style="color: var(--accent-color);">checking...</strong>
-                        </span>
-                        <span class="indicator-item">
-                            <span class="telemetry-label">API Server:</span>
-                            <strong style="color: var(--success-color);">ONLINE</strong>
-                        </span>
-                        <div class="btn-group-xs" style="margin-left: auto;">
-                            <button class="btn-success btn-xs" id="btn-service-start">▶ Start Service</button>
-                            <button class="btn-danger btn-xs" id="btn-service-stop">⏸ Stop Service</button>
-                        </div>
-                    </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Active:</span>
+                    <strong id="telemetry-active-name" style="color: var(--accent-color);">None Selected</strong>
                 </div>
-                
-                <!-- Horizontal Separator -->
-                <div class="top-bar-row-divider"></div>
-
-                <!-- Row 2: Live Telemetry Dashboard -->
-                <div class="top-bar-row telemetry-row" id="telemetry-card">
-                    <span class="row-title">📊 Live Telemetry</span>
-                    <div class="top-bar-items">
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Vehicle:</span>
-                            <strong id="telemetry-active-name" style="color: var(--accent-color);">None Selected</strong>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">State:</span>
-                            <span id="telemetry-state">-</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Speed:</span>
-                            <strong id="telemetry-speed">0 km/h</strong>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Coords:</span>
-                            <span class="mono" id="telemetry-coords">-0.00000, 0.00000</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Bearing:</span>
-                            <span id="telemetry-bearing">0°</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Distance:</span>
-                            <span id="telemetry-dist">0.00 / 0.00 km</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Progress:</span>
-                            <strong id="telemetry-progress">0%</strong>
-                        </div>
-                    </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">State:</span>
+                    <span id="telemetry-state">-</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Speed:</span>
+                    <strong id="telemetry-speed">0 km/h</strong>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Coords:</span>
+                    <span class="mono" id="telemetry-coords">-0.00000, 0.00000</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Bearing:</span>
+                    <span id="telemetry-bearing">0°</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Distance:</span>
+                    <span id="telemetry-dist">0.00 / 0.00 km</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Progress:</span>
+                    <strong id="telemetry-progress">0%</strong>
                 </div>
             </div>
             
