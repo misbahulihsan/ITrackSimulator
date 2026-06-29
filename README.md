@@ -24,6 +24,7 @@ The simulator features a responsive, glassmorphic UI, map coordinate picking, au
 ### 3. Advanced Trip Routing & Multi-Waypoint Paths
 * **Single Route (Point A to B)**: Automated call to OSRM API to fetch the shortest driving path.
 * **Multi-Waypoint Routing**: Add multiple intermediate checkpoints directly in the UI to create complex, customized travel paths.
+* **Predefined Place & Subplace Routing (Selected Route)**: Choose routes using hierarchical Place and Subplace dropdown selectors (e.g. Jakarta, Bandung, Kediri). Supports adding multiple place checkpoints, drag-and-drop reordering, auto-pans the map on selection, and populates coordinates automatically from the SQLite database.
 * **Local Caching System**: Caches route geometry as JSON and GeoJSON files in the `routes/` directory to speed up load times and minimize API queries.
 
 ### 4. Realistic Physics & Simulation Behaviors
@@ -59,14 +60,15 @@ The simulator features a responsive, glassmorphic UI, map coordinate picking, au
 ## 📁 Directory Structure
 
 ```text
-├── simulator_server.py    # Main Flask server & simulation runners thread manager
-├── database.py            # SQLite database schema, migrations, and query interfaces
-├── map.html               # Main Leaflet Control Panel UI
-├── login.html             # Glassmorphic Login UI
-├── requirements.txt       # Python dependencies
-├── simulator.db           # SQLite database file (generated automatically)
-├── routes/                # Local cache directory for GeoJSON and JSON routes
-└── state/                 # Local cache directory for device simulation state checkpoints
+├── simulator_server.py         # Main Flask server & simulation runners thread manager
+├── database.py                 # SQLite database schema, migrations, and query interfaces
+├── map.html                    # Main Leaflet Control Panel UI
+├── login.html                  # Glassmorphic Login UI
+├── requirements.txt            # Python dependencies
+├── simulator.db                # SQLite database file (generated automatically)
+├── placesubplace29june2026.json # Predefined places and subplaces database seed file
+├── routes/                     # Local cache directory for GeoJSON and JSON routes
+└── state/                      # Local cache directory for device simulation state checkpoints
 ```
 
 ---
@@ -134,7 +136,7 @@ sshpass -p 'ihsan123' rsync -avz -e "ssh -o PubkeyAuthentication=no -o StrictHos
 3. Set your Traccar Server host (e.g. `tracking.misbahulihsan.com`) in the settings.
 4. Click **+ Add Device** to register a new vehicle simulator:
    * Select a **Vehicle Type** (Car, Motorcycle, Bus).
-   * Pick **Start/End Coordinates** directly by clicking the "Pick on Map" button and selecting locations on the map. Or choose **Multiple** route mode and add multiple waypoints.
+   * Pick **Start/End Coordinates** directly by clicking the "Pick on Map" button and selecting locations on the map. Or choose **Multiple** route mode to add multiple manual waypoints, or select **Selected Route** to pick coordinates from predefined Place & Subplace dropdown selectors.
    * Configure **Trip Type** (Single or Nonstop) and set the relevant scheduled departure/arrival times for RIT-A and RIT-B.
 5. Click **Save & Start**. The simulator will fetch the route, cache it, and begin transmitting positions to your Traccar Server.
 6. Monitor live progress, speed, bearing, and distance directly on the map.

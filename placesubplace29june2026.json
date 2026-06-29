@@ -1,0 +1,1954 @@
+[
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 1,
+        "subplace_name": "Pajajaran",
+        "Latitude": -6.905822,
+        "Longitude": 107.581616
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 2,
+        "subplace_name": "Cileunyi",
+        "Latitude": -6.937532,
+        "Longitude": 107.755571
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 3,
+        "subplace_name": "Terminal Cicaheum",
+        "Latitude": -6.902065,
+        "Longitude": 107.656297
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 352,
+        "subplace_name": "Terminal Leuwi Panjang",
+        "Latitude": -6.946684,
+        "Longitude": 107.593173
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 2496,
+        "subplace_name": "Cibiru",
+        "Latitude": -6.934496,
+        "Longitude": 107.717807
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 2556,
+        "subplace_name": "Cimindi",
+        "Latitude": -6.898525,
+        "Longitude": 107.561926
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 3195,
+        "subplace_name": "Surapati",
+        "Latitude": -6.898796,
+        "Longitude": 107.623599
+    },
+    {
+        "place_id": 1,
+        "place_name": "Bandung",
+        "SubPlace_ID": 5307,
+        "subplace_name": "Cileunyi Wetan",
+        "Latitude": -6.943717,
+        "Longitude": 107.756675
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 6446,
+        "subplace_name": "BTC Mall",
+        "Latitude": -6.259176,
+        "Longitude": 107.021644
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 2867,
+        "subplace_name": "Jatiwarna",
+        "Latitude": -6.310277,
+        "Longitude": 106.924289
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 239,
+        "subplace_name": "Bekasi Timur",
+        "Latitude": -6.254643,
+        "Longitude": 107.022326
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 5,
+        "subplace_name": "Cikarang",
+        "Latitude": -6.313587,
+        "Longitude": 107.14198
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 100,
+        "subplace_name": "Bekasi Barat",
+        "Latitude": -6.249125,
+        "Longitude": 106.991835
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 206,
+        "subplace_name": "Jati Asih",
+        "Latitude": -6.293585,
+        "Longitude": 106.959655
+    },
+    {
+        "place_id": 2,
+        "place_name": "Bekasi",
+        "SubPlace_ID": 208,
+        "subplace_name": "Cibitung",
+        "Latitude": -6.271613,
+        "Longitude": 107.092509
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 199,
+        "subplace_name": "Bubulak",
+        "Latitude": -6.570962,
+        "Longitude": 106.755191
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 200,
+        "subplace_name": "Gunung Putri",
+        "Latitude": -6.415122,
+        "Longitude": 106.94479
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 102,
+        "subplace_name": "Tajur",
+        "Latitude": -6.646874,
+        "Longitude": 106.842612
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 87,
+        "subplace_name": "Cileungsi",
+        "Latitude": -6.40751,
+        "Longitude": 106.968858
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 88,
+        "subplace_name": "Terminal Bogor",
+        "Latitude": -6.603982,
+        "Longitude": 106.806061
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 10,
+        "subplace_name": "Cibinong",
+        "Latitude": -6.48475,
+        "Longitude": 106.856199
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 237,
+        "subplace_name": "Pomad",
+        "Latitude": -6.548568,
+        "Longitude": 106.822721
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 404,
+        "subplace_name": "Citeureup",
+        "Latitude": -6.487,
+        "Longitude": 106.878551
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 406,
+        "subplace_name": "Warung Jambu",
+        "Latitude": -6.567671,
+        "Longitude": 106.809189
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 2433,
+        "subplace_name": "Cibinong Lani",
+        "Latitude": -6.464586,
+        "Longitude": 106.855395
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 2434,
+        "subplace_name": "Cibinong Yoga",
+        "Latitude": -6.471026,
+        "Longitude": 106.857904
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 2964,
+        "subplace_name": "Sukaraja",
+        "Latitude": -6.542786,
+        "Longitude": 106.826158
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 4014,
+        "subplace_name": "Tajur Baru",
+        "Latitude": -6.646874,
+        "Longitude": 106.842612
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 4161,
+        "subplace_name": "Simpang Depok",
+        "Latitude": -6.412074,
+        "Longitude": 106.860809
+    },
+    {
+        "place_id": 4,
+        "place_name": "Bogor",
+        "SubPlace_ID": 4162,
+        "subplace_name": "PAL",
+        "Latitude": -6.567754,
+        "Longitude": 106.809211
+    },
+    {
+        "place_id": 6,
+        "place_name": "Cirebon",
+        "SubPlace_ID": 5118,
+        "subplace_name": "Talun",
+        "Latitude": -6.750033,
+        "Longitude": 108.526577
+    },
+    {
+        "place_id": 6,
+        "place_name": "Cirebon",
+        "SubPlace_ID": 2415,
+        "subplace_name": "Rumah Makan Aroma Cirebon",
+        "Latitude": -6.810168,
+        "Longitude": 108.689372
+    },
+    {
+        "place_id": 11,
+        "place_name": "Karawang",
+        "SubPlace_ID": 2757,
+        "subplace_name": "Sebelum Cikampek",
+        "Latitude": -6.458265,
+        "Longitude": 107.509648
+    },
+    {
+        "place_id": 11,
+        "place_name": "Karawang",
+        "SubPlace_ID": 240,
+        "subplace_name": "Cikampek",
+        "Latitude": -6.400036,
+        "Longitude": 107.486443
+    },
+    {
+        "place_id": 11,
+        "place_name": "Karawang",
+        "SubPlace_ID": 26,
+        "subplace_name": "Karawang Barat",
+        "Latitude": -6.335726,
+        "Longitude": 107.27692
+    },
+    {
+        "place_id": 11,
+        "place_name": "Karawang",
+        "SubPlace_ID": 207,
+        "subplace_name": "Klari",
+        "Latitude": -6.400036,
+        "Longitude": 107.486443
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 33,
+        "subplace_name": "Terminal Arjosari",
+        "Latitude": -7.932831,
+        "Longitude": 112.65919
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 260,
+        "subplace_name": "Lawang",
+        "Latitude": -7.842466,
+        "Longitude": 112.697806
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 2623,
+        "subplace_name": "Kepanjen",
+        "Latitude": -8.132266,
+        "Longitude": 112.571309
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 1683,
+        "subplace_name": "Karangkates",
+        "Latitude": -8.155843,
+        "Longitude": 112.45069
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 4909,
+        "subplace_name": "Terminal Dampit",
+        "Latitude": -8.212043,
+        "Longitude": 112.757475
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3523,
+        "subplace_name": "Sumberpucung",
+        "Latitude": -8.156814,
+        "Longitude": 112.486256
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3266,
+        "subplace_name": "Klojen",
+        "Latitude": -7.976873,
+        "Longitude": 112.636869
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3273,
+        "subplace_name": "Pakisaji",
+        "Latitude": -8.045828,
+        "Longitude": 112.627439
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3282,
+        "subplace_name": "Bululawang",
+        "Latitude": -8.075928,
+        "Longitude": 112.640855
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3283,
+        "subplace_name": "Dampit",
+        "Latitude": -8.212092,
+        "Longitude": 112.749929
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3287,
+        "subplace_name": "Gondanglegi",
+        "Latitude": -8.168996,
+        "Longitude": 112.640318
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 3304,
+        "subplace_name": "Turen",
+        "Latitude": -8.172716,
+        "Longitude": 112.687151
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 6335,
+        "subplace_name": "Bululawang (Wandanpuro)",
+        "Latitude": -8.08296,
+        "Longitude": 112.638285
+    },
+    {
+        "place_id": 13,
+        "place_name": "Malang",
+        "SubPlace_ID": 6336,
+        "subplace_name": "Turen (Sedayu)",
+        "Latitude": -8.177879,
+        "Longitude": 112.68713
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 6340,
+        "subplace_name": "Alang-Alang Lebar (Soekarno Hatta)",
+        "Latitude": -2.924515,
+        "Longitude": 104.710233
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 4931,
+        "subplace_name": "Plaju",
+        "Latitude": -2.994159,
+        "Longitude": 104.80506
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 5142,
+        "subplace_name": "Alang-Alang Lebar",
+        "Latitude": -2.916853,
+        "Longitude": 104.682266
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 4876,
+        "subplace_name": "Sukarami",
+        "Latitude": -2.913776,
+        "Longitude": 104.696792
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 5446,
+        "subplace_name": "Talang Kelapa",
+        "Latitude": -2.960014,
+        "Longitude": 104.706237
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 1723,
+        "subplace_name": "Terminal Alang-Alang Lebar",
+        "Latitude": -2.913776,
+        "Longitude": 104.696792
+    },
+    {
+        "place_id": 14,
+        "place_name": "Palembang",
+        "SubPlace_ID": 2644,
+        "subplace_name": "Poligon",
+        "Latitude": -2.995278,
+        "Longitude": 104.719725
+    },
+    {
+        "place_id": 16,
+        "place_name": "Pekalongan",
+        "SubPlace_ID": 1623,
+        "subplace_name": "Terminal Pekalongan",
+        "Latitude": -6.902916,
+        "Longitude": 109.700742
+    },
+    {
+        "place_id": 16,
+        "place_name": "Pekalongan",
+        "SubPlace_ID": 4331,
+        "subplace_name": "Wiradesa",
+        "Latitude": -6.891119,
+        "Longitude": 109.625067
+    },
+    {
+        "place_id": 16,
+        "place_name": "Pekalongan",
+        "SubPlace_ID": 5647,
+        "subplace_name": "Pekalongan Selatan (Duwet)",
+        "Latitude": -6.928457,
+        "Longitude": 109.691149
+    },
+    {
+        "place_id": 19,
+        "place_name": "Semarang",
+        "SubPlace_ID": 5038,
+        "subplace_name": "Candisari",
+        "Latitude": -7.030671,
+        "Longitude": 110.418456
+    },
+    {
+        "place_id": 19,
+        "place_name": "Semarang",
+        "SubPlace_ID": 400,
+        "subplace_name": "Terminal Bawen",
+        "Latitude": -7.245124,
+        "Longitude": 110.4336
+    },
+    {
+        "place_id": 19,
+        "place_name": "Semarang",
+        "SubPlace_ID": 83,
+        "subplace_name": "Krapyak",
+        "Latitude": -6.987027,
+        "Longitude": 110.372296
+    },
+    {
+        "place_id": 21,
+        "place_name": "Sumedang",
+        "SubPlace_ID": 2692,
+        "subplace_name": "Jatinangor",
+        "Latitude": -6.937706,
+        "Longitude": 107.757048
+    },
+    {
+        "place_id": 21,
+        "place_name": "Sumedang",
+        "SubPlace_ID": 5403,
+        "subplace_name": "Sumedang Utara",
+        "Latitude": -6.832666,
+        "Longitude": 107.917385
+    },
+    {
+        "place_id": 21,
+        "place_name": "Sumedang",
+        "SubPlace_ID": 4280,
+        "subplace_name": "Alam Sari",
+        "Latitude": -6.824846,
+        "Longitude": 107.921576
+    },
+    {
+        "place_id": 21,
+        "place_name": "Sumedang",
+        "SubPlace_ID": 4157,
+        "subplace_name": "Terminal Ciakar",
+        "Latitude": -6.825678,
+        "Longitude": 107.92159
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 3839,
+        "subplace_name": "Rungkut",
+        "Latitude": -7.322402,
+        "Longitude": 112.76976
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 4195,
+        "subplace_name": "Medaeng",
+        "Latitude": -7.351357,
+        "Longitude": 112.713418
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 3436,
+        "subplace_name": "Pasar Besar",
+        "Latitude": -7.247797,
+        "Longitude": 112.741743
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 3448,
+        "subplace_name": "Dharmawangsa",
+        "Latitude": -7.273207,
+        "Longitude": 112.756361
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 4027,
+        "subplace_name": "Genteng",
+        "Latitude": -7.249821,
+        "Longitude": 112.745563
+    },
+    {
+        "place_id": 22,
+        "place_name": "Surabaya",
+        "SubPlace_ID": 108,
+        "subplace_name": "Terminal Purabaya/Bungurasih",
+        "Latitude": -7.350425,
+        "Longitude": 112.724292
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 59,
+        "subplace_name": "Terminal Poris",
+        "Latitude": -6.172858,
+        "Longitude": 106.663548
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 415,
+        "subplace_name": "Situ Gintung",
+        "Latitude": -6.299565,
+        "Longitude": 106.762834
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 433,
+        "subplace_name": "Cikupa",
+        "Latitude": -6.221527,
+        "Longitude": 106.539184
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 435,
+        "subplace_name": "Cikokol",
+        "Latitude": -6.18434,
+        "Longitude": 106.642383
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 436,
+        "subplace_name": "Kutabumi",
+        "Latitude": -6.157972,
+        "Longitude": 106.569726
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2706,
+        "subplace_name": "Balaraja",
+        "Latitude": -6.19295,
+        "Longitude": 106.459679
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2707,
+        "subplace_name": "BSD Bumi Serpong Damai",
+        "Latitude": -6.182464,
+        "Longitude": 106.643173
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2758,
+        "subplace_name": "Gelam Jaya",
+        "Latitude": -6.173296,
+        "Longitude": 106.564472
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2081,
+        "subplace_name": "Ciledug",
+        "Latitude": -6.242977,
+        "Longitude": 106.701312
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2084,
+        "subplace_name": "Ciputat",
+        "Latitude": -6.336274,
+        "Longitude": 106.749651
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 2085,
+        "subplace_name": "Pamulang",
+        "Latitude": -6.352521,
+        "Longitude": 106.756335
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 3258,
+        "subplace_name": "Bitung",
+        "Latitude": -6.231679,
+        "Longitude": 106.544915
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 5266,
+        "subplace_name": "Sentul Jaya, Balaraja",
+        "Latitude": -6.204039,
+        "Longitude": 106.452284
+    },
+    {
+        "place_id": 23,
+        "place_name": "Tangerang",
+        "SubPlace_ID": 4848,
+        "subplace_name": "Bitung Jaya, Cikupa",
+        "Latitude": -6.221579,
+        "Longitude": 106.539141
+    },
+    {
+        "place_id": 24,
+        "place_name": "Tegal",
+        "SubPlace_ID": 5288,
+        "subplace_name": "Warureja",
+        "Latitude": -6.870687,
+        "Longitude": 109.328788
+    },
+    {
+        "place_id": 24,
+        "place_name": "Tegal",
+        "SubPlace_ID": 5290,
+        "subplace_name": "Kramat",
+        "Latitude": -6.865368,
+        "Longitude": 109.187836
+    },
+    {
+        "place_id": 24,
+        "place_name": "Tegal",
+        "SubPlace_ID": 5658,
+        "subplace_name": "Tegal Barat",
+        "Latitude": -6.8707,
+        "Longitude": 109.116519
+    },
+    {
+        "place_id": 33,
+        "place_name": "Pasuruan",
+        "SubPlace_ID": 2646,
+        "subplace_name": "Pandaan",
+        "Latitude": -7.654635,
+        "Longitude": 112.69253
+    },
+    {
+        "place_id": 37,
+        "place_name": "Salatiga",
+        "SubPlace_ID": 2412,
+        "subplace_name": "Ampel",
+        "Latitude": -7.451682,
+        "Longitude": 110.543087
+    },
+    {
+        "place_id": 37,
+        "place_name": "Salatiga",
+        "SubPlace_ID": 2413,
+        "subplace_name": "Sruwen",
+        "Latitude": -7.430498,
+        "Longitude": 110.531687
+    },
+    {
+        "place_id": 37,
+        "place_name": "Salatiga",
+        "SubPlace_ID": 227,
+        "subplace_name": "Terminal Tingkir",
+        "Latitude": -7.362015,
+        "Longitude": 110.514393
+    },
+    {
+        "place_id": 37,
+        "place_name": "Salatiga",
+        "SubPlace_ID": 122,
+        "subplace_name": "Terminal Salatiga",
+        "Latitude": -7.317031,
+        "Longitude": 110.502695
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 127,
+        "subplace_name": "Matesih",
+        "Latitude": -7.651676,
+        "Longitude": 111.045769
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 2937,
+        "subplace_name": "Terminal Bejen",
+        "Latitude": -7.603842,
+        "Longitude": 110.972136
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 5794,
+        "subplace_name": "Tawangmangu (Gondosuli)",
+        "Latitude": -7.666867,
+        "Longitude": 111.17633
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 5795,
+        "subplace_name": "Terminal Matesih",
+        "Latitude": -7.64555,
+        "Longitude": 111.047829
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 5796,
+        "subplace_name": "Terminal Karangpandan",
+        "Latitude": -7.614617,
+        "Longitude": 111.073728
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 5405,
+        "subplace_name": "Jaten",
+        "Latitude": -7.551574,
+        "Longitude": 110.887627
+    },
+    {
+        "place_id": 38,
+        "place_name": "Karanganyar",
+        "SubPlace_ID": 5407,
+        "subplace_name": "Gondangrejo",
+        "Latitude": -7.522205,
+        "Longitude": 110.817161
+    },
+    {
+        "place_id": 41,
+        "place_name": "Magelang",
+        "SubPlace_ID": 1924,
+        "subplace_name": "Terminal Muntilan",
+        "Latitude": -7.579217,
+        "Longitude": 110.284903
+    },
+    {
+        "place_id": 41,
+        "place_name": "Magelang",
+        "SubPlace_ID": 1524,
+        "subplace_name": "Terminal Tidar/Magelang",
+        "Latitude": -7.490334,
+        "Longitude": 110.23499
+    },
+    {
+        "place_id": 45,
+        "place_name": "Sragen",
+        "SubPlace_ID": 150,
+        "subplace_name": "Terminal Pilangsari Sragen",
+        "Latitude": -7.410072,
+        "Longitude": 111.051022
+    },
+    {
+        "place_id": 45,
+        "place_name": "Sragen",
+        "SubPlace_ID": 98,
+        "subplace_name": "Terminal Gemolong",
+        "Latitude": -7.414997,
+        "Longitude": 110.818475
+    },
+    {
+        "place_id": 45,
+        "place_name": "Sragen",
+        "SubPlace_ID": 6417,
+        "subplace_name": "Rest Area Pungkruk",
+        "Latitude": -7.434518,
+        "Longitude": 110.985057
+    },
+    {
+        "place_id": 46,
+        "place_name": "Ponorogo",
+        "SubPlace_ID": 151,
+        "subplace_name": "Terminal Ponorogo",
+        "Latitude": -7.836347,
+        "Longitude": 111.486567
+    },
+    {
+        "place_id": 46,
+        "place_name": "Ponorogo",
+        "SubPlace_ID": 431,
+        "subplace_name": "Jetis",
+        "Latitude": -7.919013,
+        "Longitude": 111.477128
+    },
+    {
+        "place_id": 46,
+        "place_name": "Ponorogo",
+        "SubPlace_ID": 489,
+        "subplace_name": "Terminal Seloaji",
+        "Latitude": -7.835038,
+        "Longitude": 111.498094
+    },
+    {
+        "place_id": 46,
+        "place_name": "Ponorogo",
+        "SubPlace_ID": 2760,
+        "subplace_name": "Garasi Ponorogo",
+        "Latitude": -7.835208,
+        "Longitude": 111.498116
+    },
+    {
+        "place_id": 47,
+        "place_name": "Lampung",
+        "SubPlace_ID": 2418,
+        "subplace_name": "Bakaheuni",
+        "Latitude": -5.931306,
+        "Longitude": 105.998132
+    },
+    {
+        "place_id": 55,
+        "place_name": "Kendal",
+        "SubPlace_ID": 2414,
+        "subplace_name": "Rumah Makan Sari Rasa",
+        "Latitude": -6.953649,
+        "Longitude": 110.097375
+    },
+    {
+        "place_id": 55,
+        "place_name": "Kendal",
+        "SubPlace_ID": 190,
+        "subplace_name": "Kota Kendal",
+        "Latitude": -6.953532,
+        "Longitude": 110.097364
+    },
+    {
+        "place_id": 57,
+        "place_name": "Sukoharjo",
+        "SubPlace_ID": 225,
+        "subplace_name": "Terminal Kartasura",
+        "Latitude": -7.543011,
+        "Longitude": 110.735855
+    },
+    {
+        "place_id": 57,
+        "place_name": "Sukoharjo",
+        "SubPlace_ID": 5797,
+        "subplace_name": "Mojolaban (Sapen)",
+        "Latitude": -7.58329,
+        "Longitude": 110.909527
+    },
+    {
+        "place_id": 58,
+        "place_name": "Magetan",
+        "SubPlace_ID": 223,
+        "subplace_name": "Terminal Maospati",
+        "Latitude": -7.596382,
+        "Longitude": 111.426767
+    },
+    {
+        "place_id": 58,
+        "place_name": "Magetan",
+        "SubPlace_ID": 491,
+        "subplace_name": "Garasi Maospati",
+        "Latitude": -7.587311,
+        "Longitude": 111.425595
+    },
+    {
+        "place_id": 58,
+        "place_name": "Magetan",
+        "SubPlace_ID": 426,
+        "subplace_name": "Terminal Magetan",
+        "Latitude": -7.629615,
+        "Longitude": 111.329034
+    },
+    {
+        "place_id": 60,
+        "place_name": "Boyolali",
+        "SubPlace_ID": 226,
+        "subplace_name": "Terminal Boyolali",
+        "Latitude": -7.516352,
+        "Longitude": 110.592991
+    },
+    {
+        "place_id": 60,
+        "place_name": "Boyolali",
+        "SubPlace_ID": 6440,
+        "subplace_name": "Ampel",
+        "Latitude": -7.451908,
+        "Longitude": 110.54326
+    },
+    {
+        "place_id": 62,
+        "place_name": "Purwakarta",
+        "SubPlace_ID": 287,
+        "subplace_name": "Cikopo",
+        "Latitude": -6.437235,
+        "Longitude": 107.479173
+    },
+    {
+        "place_id": 64,
+        "place_name": "Indramayu",
+        "SubPlace_ID": 4463,
+        "subplace_name": "Indramayu Kota",
+        "Latitude": -6.630721,
+        "Longitude": 108.029705
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 4375,
+        "subplace_name": "Terminal Pare",
+        "Latitude": -7.746574,
+        "Longitude": 112.199923
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 3536,
+        "subplace_name": "Kras",
+        "Latitude": -7.948131,
+        "Longitude": 111.962763
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 420,
+        "subplace_name": "Tosaren",
+        "Latitude": -7.830065,
+        "Longitude": 112.028613
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 421,
+        "subplace_name": "Tamanan",
+        "Latitude": -7.824418,
+        "Longitude": 111.986218
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 422,
+        "subplace_name": "Campurejo",
+        "Latitude": -7.820272,
+        "Longitude": 111.987639
+    },
+    {
+        "place_id": 82,
+        "place_name": "Kediri",
+        "SubPlace_ID": 423,
+        "subplace_name": "Mrican",
+        "Latitude": -7.784932,
+        "Longitude": 112.000169
+    },
+    {
+        "place_id": 84,
+        "place_name": "Jombang",
+        "SubPlace_ID": 308,
+        "subplace_name": "Jombang Kota",
+        "Latitude": -7.532793,
+        "Longitude": 112.248749
+    },
+    {
+        "place_id": 84,
+        "place_name": "Jombang",
+        "SubPlace_ID": 5313,
+        "subplace_name": "Tebuireng",
+        "Latitude": -7.615463,
+        "Longitude": 112.239836
+    },
+    {
+        "place_id": 85,
+        "place_name": "Mojokerto",
+        "SubPlace_ID": 5445,
+        "subplace_name": "Magersari",
+        "Latitude": -7.464031,
+        "Longitude": 112.460095
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 5298,
+        "subplace_name": "Kedunggalar",
+        "Latitude": -7.394847,
+        "Longitude": 111.367415
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 4722,
+        "subplace_name": "Geneng",
+        "Latitude": -7.492372,
+        "Longitude": 111.428757
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 357,
+        "subplace_name": "Terminal Ngawi/Kertonegoro",
+        "Latitude": -7.391074,
+        "Longitude": 111.421225
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 412,
+        "subplace_name": "Terminal Gendingan",
+        "Latitude": -7.375629,
+        "Longitude": 111.226992
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 428,
+        "subplace_name": "Mantingan",
+        "Latitude": -7.364176,
+        "Longitude": 111.15052
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 1702,
+        "subplace_name": "RM. Duta",
+        "Latitude": -7.412513,
+        "Longitude": 111.418619
+    },
+    {
+        "place_id": 101,
+        "place_name": "Ngawi",
+        "SubPlace_ID": 1915,
+        "subplace_name": "Karangjati",
+        "Latitude": -7.45997,
+        "Longitude": 111.607751
+    },
+    {
+        "place_id": 102,
+        "place_name": "Madiun",
+        "SubPlace_ID": 1916,
+        "subplace_name": "Caruban",
+        "Latitude": -7.548355,
+        "Longitude": 111.671702
+    },
+    {
+        "place_id": 102,
+        "place_name": "Madiun",
+        "SubPlace_ID": 1698,
+        "subplace_name": "Terminal Madiun",
+        "Latitude": -7.603834,
+        "Longitude": 111.534315
+    },
+    {
+        "place_id": 102,
+        "place_name": "Madiun",
+        "SubPlace_ID": 425,
+        "subplace_name": "Dolopo",
+        "Latitude": -7.753537,
+        "Longitude": 111.527295
+    },
+    {
+        "place_id": 102,
+        "place_name": "Madiun",
+        "SubPlace_ID": 5605,
+        "subplace_name": "Manguharjo",
+        "Latitude": -7.602208,
+        "Longitude": 111.533787
+    },
+    {
+        "place_id": 103,
+        "place_name": "Brebes",
+        "SubPlace_ID": 5659,
+        "subplace_name": "Brebes (Exit Tol Brebes Timur)",
+        "Latitude": -6.876789,
+        "Longitude": 109.066616
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 5660,
+        "subplace_name": "Petarukan (Iser)",
+        "Latitude": -6.896815,
+        "Longitude": 109.4655
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 5278,
+        "subplace_name": "Petarukan",
+        "Latitude": -6.894373,
+        "Longitude": 109.454123
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 5581,
+        "subplace_name": "Comal (Purwoharjo)",
+        "Latitude": -6.898515,
+        "Longitude": 109.539231
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 5582,
+        "subplace_name": "Comal (Blandong)",
+        "Latitude": -6.898367,
+        "Longitude": 109.531469
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 5585,
+        "subplace_name": "Comal (Ambokulon)",
+        "Latitude": -6.888532,
+        "Longitude": 109.546236
+    },
+    {
+        "place_id": 104,
+        "place_name": "Pemalang",
+        "SubPlace_ID": 1626,
+        "subplace_name": "Terminal Induk Kota Pemalang",
+        "Latitude": -6.880616,
+        "Longitude": 109.394752
+    },
+    {
+        "place_id": 105,
+        "place_name": "Batang",
+        "SubPlace_ID": 1625,
+        "subplace_name": "Terminal Banyuputih",
+        "Latitude": -6.973004,
+        "Longitude": 109.927175
+    },
+    {
+        "place_id": 105,
+        "place_name": "Batang",
+        "SubPlace_ID": 5283,
+        "subplace_name": "Subah",
+        "Latitude": -6.971206,
+        "Longitude": 109.873056
+    },
+    {
+        "place_id": 116,
+        "place_name": "Blitar",
+        "SubPlace_ID": 4562,
+        "subplace_name": "Srengat",
+        "Latitude": -8.064871,
+        "Longitude": 112.075532
+    },
+    {
+        "place_id": 116,
+        "place_name": "Blitar",
+        "SubPlace_ID": 1509,
+        "subplace_name": "Terminal Patria Blitar",
+        "Latitude": -8.123204,
+        "Longitude": 112.15851
+    },
+    {
+        "place_id": 116,
+        "place_name": "Blitar",
+        "SubPlace_ID": 402,
+        "subplace_name": "Plosokerep",
+        "Latitude": -8.120534,
+        "Longitude": 112.160872
+    },
+    {
+        "place_id": 119,
+        "place_name": "Nganjuk",
+        "SubPlace_ID": 429,
+        "subplace_name": "Kauman Nganjuk",
+        "Latitude": -7.520641,
+        "Longitude": 111.88278
+    },
+    {
+        "place_id": 119,
+        "place_name": "Nganjuk",
+        "SubPlace_ID": 2630,
+        "subplace_name": "Kertosono",
+        "Latitude": -7.598861,
+        "Longitude": 112.115694
+    },
+    {
+        "place_id": 119,
+        "place_name": "Nganjuk",
+        "SubPlace_ID": 4714,
+        "subplace_name": "Tanjunganom",
+        "Latitude": -7.603709,
+        "Longitude": 112.0217
+    },
+    {
+        "place_id": 121,
+        "place_name": "Trenggalek",
+        "SubPlace_ID": 438,
+        "subplace_name": "Nglongsor",
+        "Latitude": -8.046423,
+        "Longitude": 111.664404
+    },
+    {
+        "place_id": 121,
+        "place_name": "Trenggalek",
+        "SubPlace_ID": 439,
+        "subplace_name": "Terminal Surodakan",
+        "Latitude": -8.042754,
+        "Longitude": 111.716855
+    },
+    {
+        "place_id": 121,
+        "place_name": "Trenggalek",
+        "SubPlace_ID": 439,
+        "subplace_name": "Terminal Surodakan",
+        "Latitude": -8.042754,
+        "Longitude": 111.716855
+    },
+    {
+        "place_id": 122,
+        "place_name": "Tulungagung",
+        "SubPlace_ID": 440,
+        "subplace_name": "Kantor Pusat (Garasi)",
+        "Latitude": -8.073695,
+        "Longitude": 111.909838
+    },
+    {
+        "place_id": 122,
+        "place_name": "Tulungagung",
+        "SubPlace_ID": 442,
+        "subplace_name": "Bandung",
+        "Latitude": -8.170939,
+        "Longitude": 111.783318
+    },
+    {
+        "place_id": 122,
+        "place_name": "Tulungagung",
+        "SubPlace_ID": 443,
+        "subplace_name": "Ngunut",
+        "Latitude": -8.092137,
+        "Longitude": 111.984599
+    },
+    {
+        "place_id": 122,
+        "place_name": "Tulungagung",
+        "SubPlace_ID": 2754,
+        "subplace_name": "Terminal Gayatri Tulungagung",
+        "Latitude": -8.072955,
+        "Longitude": 111.897293
+    },
+    {
+        "place_id": 143,
+        "place_name": "Muara Enim",
+        "SubPlace_ID": 1567,
+        "subplace_name": "Tanjung Enim",
+        "Latitude": 3.511439,
+        "Longitude": 98.652618
+    },
+    {
+        "place_id": 143,
+        "place_name": "Muara Enim",
+        "SubPlace_ID": 483,
+        "subplace_name": "Agen Muara Enim",
+        "Latitude": -3.669439,
+        "Longitude": 103.783867
+    },
+    {
+        "place_id": 1148,
+        "place_name": "Klaten",
+        "SubPlace_ID": 2424,
+        "subplace_name": "Terminal Ir. Soekarno",
+        "Latitude": -7.713281,
+        "Longitude": 110.603876
+    },
+    {
+        "place_id": 1148,
+        "place_name": "Klaten",
+        "SubPlace_ID": 2594,
+        "subplace_name": "Bendogantungan",
+        "Latitude": -7.716405,
+        "Longitude": 110.58499
+    },
+    {
+        "place_id": 1148,
+        "place_name": "Klaten",
+        "SubPlace_ID": 2595,
+        "subplace_name": "Delangu",
+        "Latitude": -7.619819,
+        "Longitude": 110.699059
+    },
+    {
+        "place_id": 1148,
+        "place_name": "Klaten",
+        "SubPlace_ID": 4897,
+        "subplace_name": "Ceper",
+        "Latitude": -7.674645,
+        "Longitude": 110.653772
+    },
+    {
+        "place_id": 1148,
+        "place_name": "Klaten",
+        "SubPlace_ID": 4898,
+        "subplace_name": "Jogonalan",
+        "Latitude": -7.721673,
+        "Longitude": 110.55728
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 5257,
+        "subplace_name": "Sidomulyo",
+        "Latitude": -5.623797,
+        "Longitude": 105.523916
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 5380,
+        "subplace_name": "Tanjung Bintang (Lematang)",
+        "Latitude": -5.41283,
+        "Longitude": 105.346525
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 5381,
+        "subplace_name": "Jati Agung (Kotabaru)",
+        "Latitude": -5.353128,
+        "Longitude": 105.322533
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 2602,
+        "subplace_name": "Kalianda",
+        "Latitude": -5.721907,
+        "Longitude": 105.617311
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 2604,
+        "subplace_name": "Natar",
+        "Latitude": -5.282642,
+        "Longitude": 105.190154
+    },
+    {
+        "place_id": 1169,
+        "place_name": "Lampung Selatan",
+        "SubPlace_ID": 2419,
+        "subplace_name": "Penengahan",
+        "Latitude": -5.750269,
+        "Longitude": 105.686806
+    },
+    {
+        "place_id": 1175,
+        "place_name": "Lampung Tengah",
+        "SubPlace_ID": 2759,
+        "subplace_name": "Wates",
+        "Latitude": -4.898132,
+        "Longitude": 105.218661
+    },
+    {
+        "place_id": 1176,
+        "place_name": "Bandar Jaya",
+        "SubPlace_ID": 2423,
+        "subplace_name": "Bandar Jaya Kota",
+        "Latitude": -4.922326,
+        "Longitude": 105.213394
+    },
+    {
+        "place_id": 1231,
+        "place_name": "Bandar Lampung",
+        "SubPlace_ID": 2420,
+        "subplace_name": "Panjang",
+        "Latitude": -5.47128,
+        "Longitude": 105.324386
+    },
+    {
+        "place_id": 1231,
+        "place_name": "Bandar Lampung",
+        "SubPlace_ID": 2422,
+        "subplace_name": "Raja Basa",
+        "Latitude": -5.359375,
+        "Longitude": 105.23203
+    },
+    {
+        "place_id": 1231,
+        "place_name": "Bandar Lampung",
+        "SubPlace_ID": 501,
+        "subplace_name": "Kali Balok",
+        "Latitude": -5.394748,
+        "Longitude": 105.289512
+    },
+    {
+        "place_id": 1256,
+        "place_name": "Tulang Bawang",
+        "SubPlace_ID": 1769,
+        "subplace_name": "Kota Tulang Bawang",
+        "Latitude": -4.248508,
+        "Longitude": 105.253992
+    },
+    {
+        "place_id": 1297,
+        "place_name": "Pringsewu",
+        "SubPlace_ID": 2184,
+        "subplace_name": "Pringsewu Kota",
+        "Latitude": -5.356144,
+        "Longitude": 104.978966
+    },
+    {
+        "place_id": 1297,
+        "place_name": "Pringsewu",
+        "SubPlace_ID": 5379,
+        "subplace_name": "Terminal Gading Rejo",
+        "Latitude": -5.373614,
+        "Longitude": 105.061614
+    },
+    {
+        "place_id": 1297,
+        "place_name": "Pringsewu",
+        "SubPlace_ID": 5661,
+        "subplace_name": "Gading Rejo",
+        "Latitude": -5.380892,
+        "Longitude": 105.026939
+    },
+    {
+        "place_id": 1299,
+        "place_name": "Metro",
+        "SubPlace_ID": 2158,
+        "subplace_name": "Terminal Metro",
+        "Latitude": -5.136359,
+        "Longitude": 105.297888
+    },
+    {
+        "place_id": 1319,
+        "place_name": "OKU Timur / Ogan Komering Ulu Timur",
+        "SubPlace_ID": 2031,
+        "subplace_name": "Martapura",
+        "Latitude": -4.321459,
+        "Longitude": 104.349902
+    },
+    {
+        "place_id": 1325,
+        "place_name": "Cilegon",
+        "SubPlace_ID": 397,
+        "subplace_name": "PCI Seruni",
+        "Latitude": -6.021441,
+        "Longitude": 106.084004
+    },
+    {
+        "place_id": 1325,
+        "place_name": "Cilegon",
+        "SubPlace_ID": 398,
+        "subplace_name": "Damkar",
+        "Latitude": -5.980955,
+        "Longitude": 106.024417
+    },
+    {
+        "place_id": 1325,
+        "place_name": "Cilegon",
+        "SubPlace_ID": 399,
+        "subplace_name": "Rumah Makan Darma Raya Merak",
+        "Latitude": -5.935989,
+        "Longitude": 106.001576
+    },
+    {
+        "place_id": 1325,
+        "place_name": "Cilegon",
+        "SubPlace_ID": 4905,
+        "subplace_name": "Pulo Merak",
+        "Latitude": -5.935653,
+        "Longitude": 106.001672
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 5039,
+        "subplace_name": "Kragilan",
+        "Latitude": -6.140338,
+        "Longitude": 106.2874
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 4165,
+        "subplace_name": "Gorda Cikande",
+        "Latitude": -6.168627,
+        "Longitude": 106.333202
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 4166,
+        "subplace_name": "Terminal Pakupatan Luar",
+        "Latitude": -6.121579,
+        "Longitude": 106.196146
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 395,
+        "subplace_name": "Ciruas",
+        "Latitude": -6.121233,
+        "Longitude": 106.226434
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 396,
+        "subplace_name": "Taman",
+        "Latitude": -6.08639,
+        "Longitude": 106.130875
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 1836,
+        "subplace_name": "Terminal Pakupatan Serang",
+        "Latitude": -6.121579,
+        "Longitude": 106.196146
+    },
+    {
+        "place_id": 1326,
+        "place_name": "Serang",
+        "SubPlace_ID": 2675,
+        "subplace_name": "Ciujung Kragilan",
+        "Latitude": -6.136816,
+        "Longitude": 106.287925
+    },
+    {
+        "place_id": 1376,
+        "place_name": "Sleman",
+        "SubPlace_ID": 2680,
+        "subplace_name": "Prambanan",
+        "Latitude": -7.755232,
+        "Longitude": 110.491497
+    },
+    {
+        "place_id": 1376,
+        "place_name": "Sleman",
+        "SubPlace_ID": 163,
+        "subplace_name": "Terminal Jombor",
+        "Latitude": -7.746549,
+        "Longitude": 110.362075
+    },
+    {
+        "place_id": 1376,
+        "place_name": "Sleman",
+        "SubPlace_ID": 4852,
+        "subplace_name": "Depok",
+        "Latitude": -7.783325,
+        "Longitude": 110.437599
+    },
+    {
+        "place_id": 1378,
+        "place_name": "Rangkasbitung",
+        "SubPlace_ID": 394,
+        "subplace_name": "Ciujung",
+        "Latitude": -6.140169,
+        "Longitude": 106.286571
+    },
+    {
+        "place_id": 1421,
+        "place_name": "Depok",
+        "SubPlace_ID": 4847,
+        "subplace_name": "Terminal Jatijajar",
+        "Latitude": -6.426764,
+        "Longitude": 106.856699
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 4163,
+        "subplace_name": "Taman Kota",
+        "Latitude": -6.156625,
+        "Longitude": 106.758045
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 4164,
+        "subplace_name": "Ampera",
+        "Latitude": -6.160236,
+        "Longitude": 106.677123
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 416,
+        "subplace_name": "Grogol",
+        "Latitude": -6.166033,
+        "Longitude": 106.786644
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 417,
+        "subplace_name": "Kapuk",
+        "Latitude": -6.121574,
+        "Longitude": 106.731138
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 419,
+        "subplace_name": "Kali Deres",
+        "Latitude": -6.154098,
+        "Longitude": 106.705469
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 70,
+        "subplace_name": "Terminal Kali Deres",
+        "Latitude": -6.153802,
+        "Longitude": 106.706539
+    },
+    {
+        "place_id": 1423,
+        "place_name": "Jakarta Barat",
+        "SubPlace_ID": 2068,
+        "subplace_name": "Cengkareng",
+        "Latitude": -6.154742,
+        "Longitude": 106.731174
+    },
+    {
+        "place_id": 1425,
+        "place_name": "Jakarta Selatan",
+        "SubPlace_ID": 92,
+        "subplace_name": "Lebak Bulus",
+        "Latitude": -6.288663,
+        "Longitude": 106.771437
+    },
+    {
+        "place_id": 1425,
+        "place_name": "Jakarta Selatan",
+        "SubPlace_ID": 144,
+        "subplace_name": "Pondok Pinang",
+        "Latitude": -6.284653,
+        "Longitude": 106.769378
+    },
+    {
+        "place_id": 1426,
+        "place_name": "Jakarta Timur",
+        "SubPlace_ID": 192,
+        "subplace_name": "Pasar Rebo",
+        "Latitude": -6.300672,
+        "Longitude": 106.858958
+    },
+    {
+        "place_id": 1426,
+        "place_name": "Jakarta Timur",
+        "SubPlace_ID": 18,
+        "subplace_name": "Terminal Kampung Rambutan",
+        "Latitude": -6.309199,
+        "Longitude": 106.882451
+    },
+    {
+        "place_id": 1426,
+        "place_name": "Jakarta Timur",
+        "SubPlace_ID": 2235,
+        "subplace_name": "Pulo Gebang",
+        "Latitude": -6.211293,
+        "Longitude": 106.9522
+    },
+    {
+        "place_id": 1427,
+        "place_name": "Jakarta Utara",
+        "SubPlace_ID": 495,
+        "subplace_name": "Terminal Tanjung Priok, Jakarta Utara",
+        "Latitude": -6.109501,
+        "Longitude": 106.881395
+    },
+    {
+        "place_id": 1434,
+        "place_name": "Lampung Utara",
+        "SubPlace_ID": 346,
+        "subplace_name": "Kotabumi",
+        "Latitude": -4.843202,
+        "Longitude": 104.90576
+    },
+    {
+        "place_id": 1434,
+        "place_name": "Lampung Utara",
+        "SubPlace_ID": 347,
+        "subplace_name": "Bukit kemuning",
+        "Latitude": -4.865839,
+        "Longitude": 104.589827
+    },
+    {
+        "place_id": 1441,
+        "place_name": "Ogan Ilir",
+        "SubPlace_ID": 1766,
+        "subplace_name": "Indralaya",
+        "Latitude": -3.191422,
+        "Longitude": 104.537744
+    },
+    {
+        "place_id": 1441,
+        "place_name": "Ogan Ilir",
+        "SubPlace_ID": 2632,
+        "subplace_name": "Tanjung Raja",
+        "Latitude": -3.327071,
+        "Longitude": 104.775672
+    },
+    {
+        "place_id": 1442,
+        "place_name": "Ogan Komering Ilir",
+        "SubPlace_ID": 2635,
+        "subplace_name": "Mesuji",
+        "Latitude": -4.025614,
+        "Longitude": 105.146284
+    },
+    {
+        "place_id": 1442,
+        "place_name": "Ogan Komering Ilir",
+        "SubPlace_ID": 1767,
+        "subplace_name": "Kayu Agung",
+        "Latitude": -3.369368,
+        "Longitude": 104.821984
+    },
+    {
+        "place_id": 1443,
+        "place_name": "Ogan Komering Ulu",
+        "SubPlace_ID": 1629,
+        "subplace_name": "Baturaja",
+        "Latitude": -4.121617,
+        "Longitude": 104.18305
+    },
+    {
+        "place_id": 1443,
+        "place_name": "Ogan Komering Ulu",
+        "SubPlace_ID": 2640,
+        "subplace_name": "Batumarta",
+        "Latitude": -4.218029,
+        "Longitude": 104.255055
+    },
+    {
+        "place_id": 1447,
+        "place_name": "Pesawaran",
+        "SubPlace_ID": 2653,
+        "subplace_name": "Tegineneng",
+        "Latitude": -5.157036,
+        "Longitude": 105.225312
+    },
+    {
+        "place_id": 1447,
+        "place_name": "Pesawaran",
+        "SubPlace_ID": 5247,
+        "subplace_name": "Gedong Tataan",
+        "Latitude": -5.374929,
+        "Longitude": 105.067756
+    },
+    {
+        "place_id": 1454,
+        "place_name": "Solo / Surakarta",
+        "SubPlace_ID": 2410,
+        "subplace_name": "Terminal Kalioso",
+        "Latitude": -7.465896,
+        "Longitude": 110.806449
+    },
+    {
+        "place_id": 1454,
+        "place_name": "Solo / Surakarta",
+        "SubPlace_ID": 2411,
+        "subplace_name": "Solo Sumber",
+        "Latitude": -7.551939,
+        "Longitude": 110.80337
+    },
+    {
+        "place_id": 1454,
+        "place_name": "Solo / Surakarta",
+        "SubPlace_ID": 121,
+        "subplace_name": "Terminal Tirtonadi",
+        "Latitude": -7.518672,
+        "Longitude": 110.822669
+    },
+    {
+        "place_id": 1458,
+        "place_name": "Way Kanan",
+        "SubPlace_ID": 2271,
+        "subplace_name": "Way Tuba",
+        "Latitude": -4.392584,
+        "Longitude": 104.415249
+    },
+    {
+        "place_id": 1458,
+        "place_name": "Way Kanan",
+        "SubPlace_ID": 2127,
+        "subplace_name": "Baradatu",
+        "Latitude": -4.728665,
+        "Longitude": 104.542594
+    },
+    {
+        "place_id": 1458,
+        "place_name": "Way Kanan",
+        "SubPlace_ID": 4906,
+        "subplace_name": "Blambangan Umpu",
+        "Latitude": -4.621701,
+        "Longitude": 104.543134
+    },
+    {
+        "place_id": 1458,
+        "place_name": "Way Kanan",
+        "SubPlace_ID": 5657,
+        "subplace_name": "Baradatu (Tiuh Balak)",
+        "Latitude": -4.725,
+        "Longitude": 104.542506
+    },
+    {
+        "place_id": 1459,
+        "place_name": "Yogyakarta",
+        "SubPlace_ID": 164,
+        "subplace_name": "Terminal Giwangan",
+        "Latitude": -7.833935,
+        "Longitude": 110.391684
+    },
+    {
+        "place_id": 1499,
+        "place_name": "Majalengka",
+        "SubPlace_ID": 2621,
+        "subplace_name": "Kadipaten",
+        "Latitude": -6.661425,
+        "Longitude": 108.268165
+    },
+    {
+        "place_id": 1559,
+        "place_name": "Jawa Barat",
+        "SubPlace_ID": 3032,
+        "subplace_name": "Cipali",
+        "Latitude": -6.507648,
+        "Longitude": 107.723943
+    },
+    {
+        "place_id": 1606,
+        "place_name": "Banyuasin",
+        "SubPlace_ID": 4374,
+        "subplace_name": "Tanjung Api Api",
+        "Latitude": -2.882771,
+        "Longitude": 104.713565
+    },
+    {
+        "place_id": 1606,
+        "place_name": "Banyuasin",
+        "SubPlace_ID": 4933,
+        "subplace_name": "Sukajadi, Talang Kelapa",
+        "Latitude": -2.912783,
+        "Longitude": 104.664236
+    },
+    {
+        "place_id": 1640,
+        "place_name": "Tulang Bawang Barat",
+        "SubPlace_ID": 4932,
+        "subplace_name": "Lambu Kibang",
+        "Latitude": -4.339603,
+        "Longitude": 105.182848
+    },
+    {
+        "place_id": 1679,
+        "place_name": "Cimahi",
+        "SubPlace_ID": 5434,
+        "subplace_name": "Cimahi Selatan",
+        "Latitude": -6.901472,
+        "Longitude": 107.543297
+    },
+    {
+        "place_id": 1679,
+        "place_name": "Cimahi",
+        "SubPlace_ID": 4279,
+        "subplace_name": "Agen Cimahi",
+        "Latitude": -6.879781,
+        "Longitude": 107.541431
+    },
+    {
+        "place_id": 1679,
+        "place_name": "Cimahi",
+        "SubPlace_ID": 6125,
+        "subplace_name": "Cimahi (Karangmekar)",
+        "Latitude": -6.880106,
+        "Longitude": 107.541198
+    }
+]
