@@ -80,6 +80,55 @@ def init_db():
         status TEXT
     )
     """)
+    
+    # Create places_subplaces table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS places_subplaces (
+        place_id INTEGER NOT NULL,
+        place_name TEXT NOT NULL,
+        subplace_id INTEGER NOT NULL,
+        subplace_name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        PRIMARY KEY (place_id, subplace_id)
+    )
+    """)
+    
+    # Import placesubplace JSON if table is empty
+    cursor.execute("SELECT COUNT(*) FROM places_subplaces")
+    if cursor.fetchone()[0] == 0:
+        json_path = "placesubplace29june2026.json"
+        if os.path.exists(json_path):
+            print("Importing placesubplace29june2026.json into database...")
+            try:
+                with open(json_path, "r") as f:
+                    data = json.load(f)
+                for item in data:
+                    cursor.execute("""
+                    INSERT OR REPLACE INTO places_subplaces (place_id, place_name, subplace_id, subplace_name, latitude, longitude)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        item["place_id"],
+                        item["place_name"],
+                        item["SubPlace_ID"],
+                        item["subplace_name"],
+                        item["Latitude"],
+                        item["Longitude"]
+                    ))
+                print(f"Successfully imported {len(data)} places/subplaces.")
+            except Exception as e:
+                print(f"Error importing places/subplaces: {e}")
+
+    # Upgrade devices table schema to support Route linking
+    for col, col_type in [("route_type", "TEXT DEFAULT 'manual'"), 
+                          ("start_place_id", "INTEGER"), 
+                          ("start_subplace_id", "INTEGER"), 
+                          ("end_place_id", "INTEGER"), 
+                          ("end_subplace_id", "INTEGER")]:
+        try:
+            cursor.execute(f"ALTER TABLE devices ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
         
     conn.commit()
     
@@ -207,6 +256,21 @@ def get_devices():
             ferry_speed = r["ferry_speed"]
         except (IndexError, KeyError, sqlite3.OperationalError):
             ferry_speed = 25
+
+        # WhatsApp and route selection mappings
+        route_type = "manual"
+        start_place_id = None
+        start_subplace_id = None
+        end_place_id = None
+        end_subplace_id = None
+        try:
+            route_type = r["route_type"] or "manual"
+            start_place_id = r["start_place_id"]
+            start_subplace_id = r["start_subplace_id"]
+            end_place_id = r["end_place_id"]
+            end_subplace_id = r["end_subplace_id"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            pass
             
         devices.append({
             "id": r["id"],
@@ -230,7 +294,12 @@ def get_devices():
             "ritb_arrive": ritb_arrive or "",
             "waypoints": waypoints,
             "route_mode": route_mode or "direction",
-            "rit_label": rit_label or "RIT-A"
+            "rit_label": rit_label or "RIT-A",
+            "route_type": route_type,
+            "start_place_id": start_place_id,
+            "start_subplace_id": start_subplace_id,
+            "end_place_id": end_place_id,
+            "end_subplace_id": end_subplace_id
         })
     return devices
 
@@ -285,6 +354,21 @@ def get_device(device_id):
             ferry_speed = r["ferry_speed"]
         except (IndexError, KeyError, sqlite3.OperationalError):
             ferry_speed = 25
+
+        # WhatsApp and route selection mappings
+        route_type = "manual"
+        start_place_id = None
+        start_subplace_id = None
+        end_place_id = None
+        end_subplace_id = None
+        try:
+            route_type = r["route_type"] or "manual"
+            start_place_id = r["start_place_id"]
+            start_subplace_id = r["start_subplace_id"]
+            end_place_id = r["end_place_id"]
+            end_subplace_id = r["end_subplace_id"]
+        except (IndexError, KeyError, sqlite3.OperationalError):
+            pass
             
         return {
             "id": r["id"],
@@ -308,7 +392,12 @@ def get_device(device_id):
             "ritb_arrive": ritb_arrive or "",
             "waypoints": waypoints,
             "route_mode": route_mode or "direction",
-            "rit_label": rit_label or "RIT-A"
+            "rit_label": rit_label or "RIT-A",
+            "route_type": route_type,
+            "start_place_id": start_place_id,
+            "start_subplace_id": start_subplace_id,
+            "end_place_id": end_place_id,
+            "end_subplace_id": end_subplace_id
         }
     return None
 
@@ -319,8 +408,9 @@ def add_device(dev):
     INSERT OR REPLACE INTO devices (
         id, name, type, start_lat, start_lon, end_lat, end_lon, 
         min_speed, avg_speed, max_speed, ferry_speed, interval, start_time, trip_type, return_time,
-        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode, rit_label
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive, waypoints, route_mode, rit_label,
+        route_type, start_place_id, start_subplace_id, end_place_id, end_subplace_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dev["id"],
         dev.get("name", ""),
@@ -345,7 +435,12 @@ def add_device(dev):
         dev.get("ritb_arrive", ""),
         json.dumps(dev.get("waypoints", [])),
         dev.get("route_mode", "direction"),
-        dev.get("rit_label", "RIT-A")
+        dev.get("rit_label", "RIT-A"),
+        dev.get("route_type", "manual"),
+        dev.get("start_place_id"),
+        dev.get("start_subplace_id"),
+        dev.get("end_place_id"),
+        dev.get("end_subplace_id")
     ))
     conn.commit()
     conn.close()
@@ -443,3 +538,41 @@ def get_rit_runs():
 
 # Initialize tables
 init_db()
+
+def get_places():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT place_id, place_name FROM places_subplaces ORDER BY place_name ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"place_id": r["place_id"], "place_name": r["place_name"]} for r in rows]
+
+def get_subplaces(place_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT subplace_id, subplace_name, latitude, longitude FROM places_subplaces WHERE place_id = ? ORDER BY subplace_name ASC", (place_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [{
+        "subplace_id": r["subplace_id"],
+        "subplace_name": r["subplace_name"],
+        "latitude": r["latitude"],
+        "longitude": r["longitude"]
+    } for r in rows]
+
+def get_subplace(place_id, subplace_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM places_subplaces WHERE place_id = ? AND subplace_id = ?", (place_id, subplace_id))
+    r = cursor.fetchone()
+    conn.close()
+    if r:
+        return {
+            "place_id": r["place_id"],
+            "place_name": r["place_name"],
+            "subplace_id": r["subplace_id"],
+            "subplace_name": r["subplace_name"],
+            "latitude": r["latitude"],
+            "longitude": r["longitude"]
+        }
+    return None

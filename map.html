@@ -893,11 +893,26 @@
                             <input type="number" id="report-interval" value="30" min="5" required>
                         </div>
                         <div class="form-group full-width">
+                            <label for="route-type">Route Input Mode</label>
+                            <select id="route-type">
+                                <option value="manual">Manual Route (Coordinate Picker / Map Draw)</option>
+                                <option value="selected">Selected Route (Place & Subplace Dropdowns)</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width" id="route-mode-group">
                             <label for="route-mode">Route Mode</label>
                             <select id="route-mode">
                                 <option value="direction">Direction (Start & End Only)</option>
                                 <option value="multiple">Multiple Direction (Multi-stop Waypoints)</option>
                             </select>
+                        </div>
+                        <!-- Selected Route Waypoint List (Place & Subplace Selection) -->
+                        <div id="selected-route-group" class="form-group full-width" style="display: none;">
+                            <label>Selected Route Locations</label>
+                            <div id="selected-waypoint-list-container" class="waypoint-list">
+                                <!-- Dynamic rows loaded by JS -->
+                            </div>
+                            <button type="button" class="btn-secondary btn-sm" id="btn-add-selected-waypoint" style="margin-top: 8px; width: 100%;">➕ Tambah Titik / Add Point</button>
                         </div>
                         <!-- Direct Start/End coordinates (only shown in 'direction' mode) -->
                         <div id="direction-coordinates-group" class="full-width" style="display: contents;">
@@ -1259,6 +1274,9 @@
             document.getElementById('device-id').disabled = false;
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            document.getElementById('route-type').value = 'manual';
+            initSelectedWaypoints();
+            toggleRouteTypeUI();
             document.getElementById('route-mode').value = 'direction';
             toggleRouteModeUI('direction');
             document.getElementById('trip-type').value = 'single';
@@ -1271,7 +1289,10 @@
             document.getElementById('add-device-card').style.display = 'none';
             document.getElementById('device-id').disabled = false;
             document.getElementById('form-title').textContent = "Add New Device";
-            document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+            document.querySelector('#device-form button[type="submit"]').textContent = "Save Changes";
+            document.getElementById('route-type').value = 'manual';
+            initSelectedWaypoints();
+            toggleRouteTypeUI();
             document.getElementById('route-mode').value = 'direction';
             toggleRouteModeUI('direction');
             document.getElementById('trip-type').value = 'single';
@@ -1306,11 +1327,14 @@
 
         // Waypoints UI Helpers
         function getWaypointCount() {
-            return document.querySelectorAll('.waypoint-row').length;
+            const container = document.getElementById('waypoint-list-container');
+            return container ? container.querySelectorAll('.waypoint-row').length : 0;
         }
 
         function updateWaypointLabels() {
-            const rows = document.querySelectorAll('.waypoint-row');
+            const container = document.getElementById('waypoint-list-container');
+            if (!container) return;
+            const rows = container.querySelectorAll('.waypoint-row');
             const total = rows.length;
             rows.forEach((row, idx) => {
                 const labelEl = row.querySelector('.waypoint-label');
@@ -1329,7 +1353,7 @@
                     pickingMode = idx;
                     map.getContainer().style.cursor = 'crosshair';
                     // Reset all other pick buttons text
-                    document.querySelectorAll('.btn-pick-waypoint').forEach((b, i) => {
+                    document.querySelectorAll('#waypoint-list-container .btn-pick-waypoint').forEach((b, i) => {
                         b.textContent = i === idx ? "📍 Click Map..." : "📍 Pick";
                     });
                 };
@@ -1509,7 +1533,251 @@
             rebuildMarkersFromInputs();
         }
 
-        function rebuildMarkersFromInputs() {
+        let placesData = [];
+
+        function loadPlaces() {
+            fetch(`${API_BASE}/api/places`)
+                .then(r => r.json())
+                .then(data => {
+                    placesData = data;
+                    initSelectedWaypoints();
+                })
+                .catch(err => console.error("Error loading places:", err));
+        }
+
+        function createSelectedWaypointRow(placeId = '', subplaceId = '') {
+            const row = document.createElement('div');
+            row.className = 'waypoint-row';
+            row.setAttribute('draggable', 'false');
+            row._leafletMarker = null;
+            
+            row.innerHTML = `
+                <div class="waypoint-row-header">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="waypoint-drag-handle" title="Drag to reorder">⠿</span>
+                        <span class="waypoint-label">Waypoint</span>
+                    </div>
+                    <button type="button" class="btn-remove-waypoint">&times; Remove</button>
+                </div>
+                <div class="waypoint-coords-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <select class="waypoint-place" required>
+                        <option value="">-- Select Place --</option>
+                    </select>
+                    <select class="waypoint-subplace" disabled required>
+                        <option value="">-- Select Subplace --</option>
+                    </select>
+                </div>
+            `;
+            
+            const placeSelect = row.querySelector('.waypoint-place');
+            const subplaceSelect = row.querySelector('.waypoint-subplace');
+            
+            // Populate places list
+            placesData.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.place_id;
+                opt.textContent = p.place_name;
+                placeSelect.appendChild(opt);
+            });
+            
+            // Handle Place change
+            placeSelect.addEventListener('change', () => {
+                const pid = placeSelect.value;
+                if (!pid) {
+                    subplaceSelect.innerHTML = '<option value="">-- Select Subplace --</option>';
+                    subplaceSelect.disabled = true;
+                    rebuildMarkersFromInputs();
+                    return;
+                }
+                
+                subplaceSelect.disabled = false;
+                subplaceSelect.innerHTML = '<option value="">Loading...</option>';
+                
+                fetch(`${API_BASE}/api/places/${pid}/subplaces`)
+                    .then(r => r.json())
+                    .then(subplaces => {
+                        subplaceSelect.innerHTML = '<option value="">-- Select Subplace --</option>';
+                        subplaces.forEach(sub => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.subplace_id;
+                            opt.textContent = sub.subplace_name;
+                            opt.dataset.lat = sub.latitude;
+                            opt.dataset.lon = sub.longitude;
+                            subplaceSelect.appendChild(opt);
+                        });
+                        rebuildMarkersFromInputs(row);
+                    })
+                    .catch(err => {
+                        console.error("Error loading subplaces:", err);
+                        subplaceSelect.innerHTML = '<option value="">Error loading</option>';
+                    });
+            });
+            
+            // Handle Subplace change
+            subplaceSelect.addEventListener('change', () => {
+                rebuildMarkersFromInputs(row);
+            });
+            
+            // Remove button handler
+            row.querySelector('.btn-remove-waypoint').addEventListener('click', () => {
+                row.remove();
+                updateSelectedWaypointLabels();
+                rebuildMarkersFromInputs();
+            });
+            
+            // Drag listeners
+            const handle = row.querySelector('.waypoint-drag-handle');
+            handle.addEventListener('mousedown', () => {
+                row.setAttribute('draggable', 'true');
+            });
+            handle.addEventListener('mouseup', () => {
+                row.setAttribute('draggable', 'false');
+            });
+            
+            row.addEventListener('dragstart', (e) => {
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                row.setAttribute('draggable', 'false');
+                updateSelectedWaypointLabels();
+                rebuildMarkersFromInputs();
+            });
+            
+            // If preset values provided, load them
+            if (placeId) {
+                placeSelect.value = placeId;
+                subplaceSelect.disabled = false;
+                subplaceSelect.innerHTML = '<option value="">Loading...</option>';
+                fetch(`${API_BASE}/api/places/${placeId}/subplaces`)
+                    .then(r => r.json())
+                    .then(subplaces => {
+                        subplaceSelect.innerHTML = '<option value="">-- Select Subplace --</option>';
+                        subplaces.forEach(sub => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.subplace_id;
+                            opt.textContent = sub.subplace_name;
+                            opt.dataset.lat = sub.latitude;
+                            opt.dataset.lon = sub.longitude;
+                            subplaceSelect.appendChild(opt);
+                        });
+                        if (subplaceId) {
+                            subplaceSelect.value = subplaceId;
+                        }
+                        rebuildMarkersFromInputs();
+                    })
+                    .catch(err => {
+                        console.error("Error loading subplaces:", err);
+                        subplaceSelect.innerHTML = '<option value="">Error loading</option>';
+                    });
+            }
+            
+            return row;
+        }
+
+        function updateSelectedWaypointLabels() {
+            const container = document.getElementById('selected-waypoint-list-container');
+            const rows = container.querySelectorAll('.waypoint-row');
+            rows.forEach((row, index) => {
+                const labelEl = row.querySelector('.waypoint-label');
+                if (index === 0) {
+                    labelEl.textContent = 'START LOCATION (D)';
+                    labelEl.className = 'waypoint-label badge-waypoint-start';
+                    row.querySelector('.btn-remove-waypoint').style.display = 'none';
+                } else if (index === rows.length - 1) {
+                    labelEl.textContent = 'END LOCATION (A)';
+                    labelEl.className = 'waypoint-label badge-waypoint-end';
+                    row.querySelector('.btn-remove-waypoint').style.display = 'none';
+                } else {
+                    labelEl.textContent = `WAYPOINT ${index + 1}`;
+                    labelEl.className = 'waypoint-label badge-waypoint-mid';
+                    row.querySelector('.btn-remove-waypoint').style.display = 'inline-flex';
+                }
+            });
+        }
+
+        function initSelectedWaypoints() {
+            const container = document.getElementById('selected-waypoint-list-container');
+            container.innerHTML = '';
+            container.appendChild(createSelectedWaypointRow());
+            container.appendChild(createSelectedWaypointRow());
+            updateSelectedWaypointLabels();
+        }
+
+        function updateSelectedWaypointMarkerOnMap(idx, lat, lng, row, shouldOpenPopup = false) {
+            if (row._leafletMarker) {
+                map.removeLayer(row._leafletMarker);
+            }
+            let label = "Waypoint";
+            const container = document.getElementById('selected-waypoint-list-container');
+            const total = container.querySelectorAll('.waypoint-row').length;
+            if (idx === 0) label = "Start Point (D)";
+            else if (idx === total - 1) label = "End Point (A)";
+            else label = `Waypoint ${idx}`;
+            
+            const subplaceSelect = row.querySelector('.waypoint-subplace');
+            const subplaceName = subplaceSelect.options[subplaceSelect.selectedIndex]?.textContent || '';
+            
+            const marker = L.marker([lat, lng], { draggable: false }).addTo(map)
+                .bindPopup(`Selected ${label}: ${subplaceName}`)
+                .bindTooltip(label, { permanent: true, direction: 'top', className: 'waypoint-tooltip' });
+                
+            row._leafletMarker = marker;
+            
+            if (shouldOpenPopup) {
+                marker.openPopup();
+                map.panTo([lat, lng]);
+            }
+        }
+
+        function toggleRouteTypeUI() {
+            const routeType = document.getElementById('route-type').value;
+            const routeMode = document.getElementById('route-mode').value;
+            
+            const routeModeGroup = document.getElementById('route-mode-group');
+            const directionGroup = document.getElementById('direction-coordinates-group');
+            const multipleGroup = document.getElementById('multiple-coordinates-group');
+            const selectedGroup = document.getElementById('selected-route-group');
+            
+            const startLat = document.getElementById('start-lat');
+            const startLon = document.getElementById('start-lon');
+            const endLat = document.getElementById('end-lat');
+            const endLon = document.getElementById('end-lon');
+            
+            if (routeType === 'selected') {
+                routeModeGroup.style.display = 'none';
+                directionGroup.style.setProperty('display', 'none', 'important');
+                multipleGroup.style.display = 'none';
+                selectedGroup.style.display = 'block';
+                
+                // Clear manual requirements
+                startLat.removeAttribute('required');
+                startLon.removeAttribute('required');
+                endLat.removeAttribute('required');
+                endLon.removeAttribute('required');
+            } else {
+                routeModeGroup.style.display = 'block';
+                selectedGroup.style.display = 'none';
+                
+                // Re-apply manual requirements
+                if (routeMode === 'multiple') {
+                    startLat.removeAttribute('required');
+                    startLon.removeAttribute('required');
+                    endLat.removeAttribute('required');
+                    endLon.removeAttribute('required');
+                } else {
+                    startLat.setAttribute('required', 'required');
+                    startLon.setAttribute('required', 'required');
+                    endLat.setAttribute('required', 'required');
+                    endLon.setAttribute('required', 'required');
+                }
+            }
+            rebuildMarkersFromInputs();
+        }
+
+        function rebuildMarkersFromInputs(focusRow = null) {
             if (pickedStartMarker) {
                 map.removeLayer(pickedStartMarker);
                 pickedStartMarker = null;
@@ -1525,9 +1793,29 @@
                 }
             });
             
+            const routeType = document.getElementById('route-type').value;
+            if (routeType === 'selected') {
+                const container = document.getElementById('selected-waypoint-list-container');
+                const rows = container.querySelectorAll('.waypoint-row');
+                rows.forEach((row, idx) => {
+                    const subplaceSelect = row.querySelector('.waypoint-subplace');
+                    const opt = subplaceSelect.options[subplaceSelect.selectedIndex];
+                    if (opt && opt.dataset && opt.dataset.lat && opt.dataset.lon) {
+                        const lat = parseFloat(opt.dataset.lat);
+                        const lon = parseFloat(opt.dataset.lon);
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            const shouldOpen = (focusRow === row);
+                            updateSelectedWaypointMarkerOnMap(idx, lat, lon, row, shouldOpen);
+                        }
+                    }
+                });
+                return;
+            }
+
             const mode = document.getElementById('route-mode').value;
             if (mode === 'multiple') {
-                const rows = document.querySelectorAll('.waypoint-row');
+                const container = document.getElementById('waypoint-list-container');
+                const rows = container ? container.querySelectorAll('.waypoint-row') : [];
                 rows.forEach((row, idx) => {
                     const latVal = parseFloat(row.querySelector('.waypoint-lat').value);
                     const lonVal = parseFloat(row.querySelector('.waypoint-lon').value);
@@ -1669,6 +1957,37 @@
 
         document.getElementById('route-mode').addEventListener('change', (e) => {
             toggleRouteModeUI(e.target.value);
+        });
+
+        document.getElementById('route-type').addEventListener('change', () => {
+            toggleRouteTypeUI();
+        });
+
+        document.getElementById('btn-add-selected-waypoint').addEventListener('click', (e) => {
+            e.preventDefault();
+            const container = document.getElementById('selected-waypoint-list-container');
+            const row = createSelectedWaypointRow();
+            
+            const endRow = container.lastElementChild;
+            if (endRow) {
+                container.insertBefore(row, endRow);
+            } else {
+                container.appendChild(row);
+            }
+            updateSelectedWaypointLabels();
+        });
+
+        const selectedWaypointContainer = document.getElementById('selected-waypoint-list-container');
+        selectedWaypointContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const dragging = document.querySelector('.waypoint-row.dragging');
+            if (!dragging) return;
+            const afterElement = getDragAfterElement(selectedWaypointContainer, e.clientY);
+            if (afterElement == null) {
+                selectedWaypointContainer.appendChild(dragging);
+            } else {
+                selectedWaypointContainer.insertBefore(dragging, afterElement);
+            }
         });
 
         document.getElementById('trip-type').addEventListener('change', () => {
@@ -1908,6 +2227,29 @@
             document.getElementById('nonstop-layover-min').value = dev.nonstop_layover_min || 60;
             document.getElementById('nonstop-layover-max').value = dev.nonstop_layover_max || 60;
             
+            const routeType = dev.route_type || 'manual';
+            document.getElementById('route-type').value = routeType;
+            
+            if (routeType === 'selected') {
+                const container = document.getElementById('selected-waypoint-list-container');
+                container.innerHTML = '';
+                
+                const wps = dev.waypoints || [];
+                if (wps.length >= 2) {
+                    wps.forEach(wp => {
+                        const row = createSelectedWaypointRow(wp.place_id, wp.subplace_id);
+                        container.appendChild(row);
+                    });
+                } else {
+                    container.appendChild(createSelectedWaypointRow());
+                    container.appendChild(createSelectedWaypointRow());
+                }
+                updateSelectedWaypointLabels();
+            } else {
+                initSelectedWaypoints();
+            }
+            toggleRouteTypeUI();
+            
             const routeMode = dev.route_mode || 'direction';
             document.getElementById('route-mode').value = routeMode;
             if (routeMode === 'multiple') {
@@ -1945,11 +2287,43 @@
         document.getElementById('device-form').addEventListener('submit', (e) => {
             e.preventDefault();
             
+            const routeType = document.getElementById('route-type').value;
             const routeMode = document.getElementById('route-mode').value;
             let startVal, endVal, waypointsVal;
             
-            if (routeMode === 'multiple') {
-                const waypointRows = document.querySelectorAll('.waypoint-row');
+            if (routeType === 'selected') {
+                const container = document.getElementById('selected-waypoint-list-container');
+                const rows = container.querySelectorAll('.waypoint-row');
+                waypointsVal = [];
+                let valid = true;
+                
+                rows.forEach(row => {
+                    const placeSelect = row.querySelector('.waypoint-place');
+                    const subplaceSelect = row.querySelector('.waypoint-subplace');
+                    const opt = subplaceSelect.options[subplaceSelect.selectedIndex];
+                    
+                    if (!placeSelect.value || !subplaceSelect.value || !opt || !opt.dataset.lat) {
+                        valid = false;
+                        return;
+                    }
+                    
+                    waypointsVal.push({
+                        lat: parseFloat(opt.dataset.lat),
+                        lon: parseFloat(opt.dataset.lon),
+                        place_id: parseInt(placeSelect.value),
+                        subplace_id: parseInt(subplaceSelect.value)
+                    });
+                });
+                
+                if (!valid || waypointsVal.length < 2) {
+                    alert("Please select both place and subplace for all locations (Start, Waypoints, and End).");
+                    return;
+                }
+                
+                startVal = { lat: waypointsVal[0].lat, lon: waypointsVal[0].lon };
+                endVal = { lat: waypointsVal[waypointsVal.length - 1].lat, lon: waypointsVal[waypointsVal.length - 1].lon };
+            } else if (routeMode === 'multiple') {
+                const waypointRows = document.getElementById('waypoint-list-container').querySelectorAll('.waypoint-row');
                 waypointsVal = [];
                 waypointRows.forEach(row => {
                     const lat = parseFloat(row.querySelector('.waypoint-lat').value);
@@ -1998,7 +2372,12 @@
                 ritb_depart: document.getElementById('ritb-depart').value.trim(),
                 ritb_arrive: document.getElementById('ritb-arrive').value.trim(),
                 nonstop_layover_min: parseInt(document.getElementById('nonstop-layover-min').value || 60),
-                nonstop_layover_max: parseInt(document.getElementById('nonstop-layover-max').value || 60)
+                nonstop_layover_max: parseInt(document.getElementById('nonstop-layover-max').value || 60),
+                route_type: routeType,
+                start_place_id: routeType === 'selected' ? waypointsVal[0].place_id : null,
+                start_subplace_id: routeType === 'selected' ? waypointsVal[0].subplace_id : null,
+                end_place_id: routeType === 'selected' ? waypointsVal[waypointsVal.length - 1].place_id : null,
+                end_subplace_id: routeType === 'selected' ? waypointsVal[waypointsVal.length - 1].subplace_id : null
             };
 
             fetch(`${API_BASE}/api/devices`, {
@@ -2470,6 +2849,7 @@
 
         // Load settings on startup
         fetchWhatsAppSettings();
+        loadPlaces();
 
         // Initialize App
         fetchServiceStatus();

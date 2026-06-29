@@ -53,8 +53,9 @@ def save_config(cfg):
             id, name, type, start_lat, start_lon, end_lat, end_lon, 
             min_speed, avg_speed, max_speed, ferry_speed, interval, start_time, trip_type, return_time,
             nonstop_layover_min, nonstop_layover_max, rita_depart, rita_arrive, ritb_depart, ritb_arrive,
-            waypoints, route_mode, rit_label
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            waypoints, route_mode, rit_label,
+            route_type, start_place_id, start_subplace_id, end_place_id, end_subplace_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             dev["id"],
             dev.get("name", ""),
@@ -79,7 +80,12 @@ def save_config(cfg):
             dev.get("ritb_arrive", ""),
             json.dumps(dev.get("waypoints", [])),
             dev.get("route_mode", "direction"),
-            dev.get("rit_label", "RIT-A")
+            dev.get("rit_label", "RIT-A"),
+            dev.get("route_type", "manual"),
+            dev.get("start_place_id"),
+            dev.get("start_subplace_id"),
+            dev.get("end_place_id"),
+            dev.get("end_subplace_id")
         ))
     conn.commit()
     conn.close()
@@ -1065,6 +1071,30 @@ def add_device():
     if not data or "id" not in data:
         return jsonify({"error": "Missing device ID"}), 400
         
+    route_type = data.get("route_type", "manual")
+    start_place_id = data.get("start_place_id")
+    start_subplace_id = data.get("start_subplace_id")
+    end_place_id = data.get("end_place_id")
+    end_subplace_id = data.get("end_subplace_id")
+    
+    start_coords = data.get("start")
+    end_coords = data.get("end")
+    
+    if route_type == "selected":
+        # Resolve start coordinates from database
+        if start_place_id and start_subplace_id:
+            sub = database.get_subplace(start_place_id, start_subplace_id)
+            if sub:
+                start_coords = {"lat": sub["latitude"], "lon": sub["longitude"]}
+        # Resolve end coordinates from database
+        if end_place_id and end_subplace_id:
+            sub = database.get_subplace(end_place_id, end_subplace_id)
+            if sub:
+                end_coords = {"lat": sub["latitude"], "lon": sub["longitude"]}
+                
+    if not start_coords or not end_coords:
+        return jsonify({"error": "Missing start or end coordinates. For selected routes, ensure place and subplace are valid."}), 400
+
     cfg = load_config()
     devices = cfg.get("devices", [])
     
@@ -1078,8 +1108,8 @@ def add_device():
     new_device = {
         "id": data["id"],
         "name": data.get("name", ""),
-        "start": data["start"],
-        "end": data["end"],
+        "start": start_coords,
+        "end": end_coords,
         "min_speed": int(data.get("min_speed", 20)),
         "avg_speed": int(data.get("avg_speed", 50)),
         "max_speed": int(data.get("max_speed", 80)),
@@ -1097,7 +1127,12 @@ def add_device():
         "ritb_arrive": data.get("ritb_arrive", ""),
         "waypoints": data.get("waypoints", []),
         "route_mode": data.get("route_mode", "direction"),
-        "rit_label": data.get("rit_label", "RIT-A")
+        "rit_label": data.get("rit_label", "RIT-A"),
+        "route_type": route_type,
+        "start_place_id": start_place_id,
+        "start_subplace_id": start_subplace_id,
+        "end_place_id": end_place_id,
+        "end_subplace_id": end_subplace_id
     }
     
     if idx >= 0:
@@ -1205,6 +1240,14 @@ def get_status():
 def get_rit_report():
     runs = database.get_rit_runs()
     return jsonify(runs)
+
+@app.route('/api/places', methods=['GET'])
+def api_get_places():
+    return jsonify(database.get_places())
+
+@app.route('/api/places/<int:place_id>/subplaces', methods=['GET'])
+def api_get_subplaces(place_id):
+    return jsonify(database.get_subplaces(place_id))
 
 @app.route('/api/settings/whatsapp', methods=['GET'])
 def get_whatsapp_settings():
