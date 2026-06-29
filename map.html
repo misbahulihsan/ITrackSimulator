@@ -469,9 +469,18 @@
             padding: 1px 4px;
         }
 
-        .badge-running { background-color: rgba(74, 222, 128, 0.15); color: var(--success-color); }
-        .badge-stopped { background-color: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
-        .badge-scheduled { background-color: rgba(251, 191, 36, 0.15); color: var(--warning-color); }
+        .badge-running   { background-color: rgba(74, 222, 128, 0.15);  color: var(--success-color); }
+        .badge-stopped   { background-color: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+        .badge-scheduled { background-color: rgba(251, 191, 36, 0.15);  color: var(--warning-color); }
+        .badge-cruising  { background-color: rgba(56, 189, 248, 0.15);  color: var(--accent-color); }
+        .badge-traffic   { background-color: rgba(251, 191, 36, 0.25);  color: #f59e0b; }
+        .badge-speeding  { background-color: rgba(248, 113, 113, 0.15); color: var(--danger-color); }
+        .badge-cornering { background-color: rgba(251, 191, 36, 0.15);  color: var(--warning-color); }
+        .badge-layover   { background-color: rgba(168, 85, 247, 0.15);  color: #c084fc; }
+        .badge-waiting   { background-color: rgba(168, 85, 247, 0.15);  color: #c084fc; }
+        .badge-paused    { background-color: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+        .badge-ferry     { background-color: rgba(56, 189, 248, 0.25);  color: var(--accent-color); }
+        .badge-replay    { background-color: rgba(168, 85, 247, 0.2);   color: #c084fc; }
 
         .status-badge {
             display: inline-flex;
@@ -2089,7 +2098,7 @@
                             <span class="device-id-sub">#${dev.id}</span>
                         </div>
                         <div class="device-badges">
-                            <span class="badge ${badgeClass} badge-status">${dev.status}</span>
+                            <span class="badge ${badgeClass} badge-status" data-state-badge="${dev.id}">${dev.status}</span>
                             ${scheduleBadge}
                         </div>
                     </div>
@@ -2461,7 +2470,7 @@
         });
 
         // Real-Time Telemetry Poll
-        function pollTelemetry() {
+         function pollTelemetry() {
             fetch(`${API_BASE}/api/status`)
                 .then(r => {
                     if (r.status === 401) {
@@ -2475,6 +2484,7 @@
                     lastTelemetryData = data; // Cache telemetry
                     updateMapMarkers(data);
                     updateTelemetryUI(data);
+                    updateDeviceStateBadges(data);
                     
                     // Automatically retry loading missing routes
                     devicesList.forEach(dev => {
@@ -2484,6 +2494,37 @@
                     });
                 })
                 .catch(err => console.error("Error polling telemetry:", err));
+        }
+
+        // Update device card state badges in-place from live telemetry
+        function updateDeviceStateBadges(telemetry) {
+            Object.keys(telemetry).forEach(id => {
+                const badge = document.querySelector(`[data-state-badge="${id}"]`);
+                if (!badge) return;
+                const tel = telemetry[id];
+                const rawState = tel.state || '';
+                // Determine display label and color class
+                const stateKey = rawState.toLowerCase().split(' ')[0].replace(/[^a-z]/g, '');
+                const classMap = {
+                    'driving':   'badge-running',
+                    'cruising':  'badge-cruising',
+                    'traffic':   'badge-traffic',
+                    'speeding':  'badge-speeding',
+                    'cornering': 'badge-cornering',
+                    'layover':   'badge-layover',
+                    'waiting':   'badge-waiting',
+                    'onferry':   'badge-ferry',
+                    'on':        'badge-ferry',    // ON FERRY starts with 'on'
+                    'paused':    'badge-paused',
+                    'stopped':   'badge-stopped',
+                    'replay':    'badge-replay',
+                };
+                const badgeClass = classMap[stateKey] || 'badge-running';
+                // Remove all badge-* classes then apply correct one
+                badge.className = badge.className.replace(/\bbadge-[a-z]+\b/g, '').trim();
+                badge.classList.add('badge', 'badge-status', badgeClass);
+                badge.textContent = rawState;
+            });
         }
 
         // Update Markers on map
