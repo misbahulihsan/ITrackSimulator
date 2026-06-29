@@ -1099,14 +1099,19 @@ def add_device():
     devices = cfg.get("devices", [])
     
     # Check if exists, update it, otherwise add it
+    original_id = data.get("original_id")
+    device_id = data["id"]
+    
+    # Check if exists, update it, otherwise add it
     idx = -1
     for i, dev in enumerate(devices):
-        if dev["id"] == data["id"]:
+        target_id = original_id if original_id else device_id
+        if dev["id"] == target_id:
             idx = i
             break
             
     new_device = {
-        "id": data["id"],
+        "id": device_id,
         "name": data.get("name", ""),
         "start": start_coords,
         "end": end_coords,
@@ -1146,8 +1151,9 @@ def add_device():
             old_device["end"]["lat"] != new_device["end"]["lat"] or
             old_device["end"]["lon"] != new_device["end"]["lon"]
         )
-        if coords_changed:
-            safe_name = data["id"].lower().replace(" ", "_")
+        if coords_changed or (original_id and original_id != device_id):
+            target_cleanup_id = original_id if original_id else device_id
+            safe_name = target_cleanup_id.lower().replace(" ", "_")
             files_to_delete = [
                 os.path.join(STATE_DIR, f"{safe_name}_state.json"),
                 os.path.join(ROUTES_DIR, f"{safe_name}.json"),
@@ -1159,7 +1165,7 @@ def add_device():
                         os.remove(p)
                     except Exception:
                         pass
-        stop_simulation_thread(data["id"])
+        stop_simulation_thread(original_id if original_id else device_id)
         devices[idx] = new_device
     else:
         devices.append(new_device)

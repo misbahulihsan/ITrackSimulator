@@ -1199,6 +1199,7 @@
 
         let devicesList = [];
         let activeDeviceID = null;
+        let currentEditingDeviceId = null;
         let mapMarkers = {}; // device_id -> L.marker
         let routePaths = {}; // device_id -> L.polyline
         let lastTelemetryData = {}; // Cache of last poll
@@ -1275,6 +1276,7 @@
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
             document.getElementById('route-type').value = 'manual';
+            currentEditingDeviceId = null;
             initSelectedWaypoints();
             toggleRouteTypeUI();
             document.getElementById('route-mode').value = 'direction';
@@ -1291,6 +1293,7 @@
             document.getElementById('form-title').textContent = "Add New Device";
             document.querySelector('#device-form button[type="submit"]').textContent = "Save Changes";
             document.getElementById('route-type').value = 'manual';
+            currentEditingDeviceId = null;
             initSelectedWaypoints();
             toggleRouteTypeUI();
             document.getElementById('route-mode').value = 'direction';
@@ -2206,7 +2209,8 @@
             document.getElementById('add-device-card').style.display = 'block';
             
             document.getElementById('device-id').value = dev.id;
-            document.getElementById('device-id').disabled = true;
+            document.getElementById('device-id').disabled = false;
+            currentEditingDeviceId = dev.id;
             document.getElementById('device-name').value = dev.name || '';
             document.getElementById('vehicle-type').value = dev.type;
             document.getElementById('report-interval').value = dev.interval;
@@ -2377,7 +2381,8 @@
                 start_place_id: routeType === 'selected' ? waypointsVal[0].place_id : null,
                 start_subplace_id: routeType === 'selected' ? waypointsVal[0].subplace_id : null,
                 end_place_id: routeType === 'selected' ? waypointsVal[waypointsVal.length - 1].place_id : null,
-                end_subplace_id: routeType === 'selected' ? waypointsVal[waypointsVal.length - 1].subplace_id : null
+                end_subplace_id: routeType === 'selected' ? waypointsVal[waypointsVal.length - 1].subplace_id : null,
+                original_id: currentEditingDeviceId
             };
 
             fetch(`${API_BASE}/api/devices`, {
@@ -2391,6 +2396,7 @@
                 document.getElementById('device-id').disabled = false;
                 document.getElementById('form-title').textContent = "Add New Device";
                 document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+                currentEditingDeviceId = null;
                 clearPickedMarkers();
                 fetchDevices();
                 setTimeout(() => {
