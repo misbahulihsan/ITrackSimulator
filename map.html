@@ -2291,6 +2291,18 @@
         document.getElementById('device-form').addEventListener('submit', (e) => {
             e.preventDefault();
             
+            const deviceIdInput = document.getElementById('device-id').value.trim();
+            const idExists = devicesList.some(dev => {
+                if (currentEditingDeviceId && dev.id.toLowerCase() === currentEditingDeviceId.toLowerCase()) {
+                    return false;
+                }
+                return dev.id.toLowerCase() === deviceIdInput.toLowerCase();
+            });
+            if (idExists) {
+                alert(`Device ID "${deviceIdInput}" already exists! Please use a unique ID.`);
+                return;
+            }
+            
             const routeType = document.getElementById('route-type').value;
             const routeMode = document.getElementById('route-mode').value;
             let startVal, endVal, waypointsVal;
@@ -2390,7 +2402,12 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    return r.json().then(data => { throw new Error(data.error || "Failed to save device"); });
+                }
+                return r.json();
+            })
             .then(res => {
                 document.getElementById('add-device-card').style.display = 'none';
                 document.getElementById('device-id').disabled = false;
@@ -2403,7 +2420,7 @@
                     selectDevice(payload.id);
                 }, 1000);
             })
-            .catch(err => alert("Error saving device configuration. Check inputs."));
+            .catch(err => alert("Error: " + err.message));
         });
 
         // Real-Time Telemetry Poll

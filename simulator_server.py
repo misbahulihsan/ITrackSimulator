@@ -1098,10 +1098,16 @@ def add_device():
     cfg = load_config()
     devices = cfg.get("devices", [])
     
-    # Check if exists, update it, otherwise add it
     original_id = data.get("original_id")
     device_id = data["id"]
     
+    # Validate duplicate device ID (excluding the device being edited)
+    for dev in devices:
+        if original_id and dev["id"] == original_id:
+            continue
+        if dev["id"].lower() == device_id.lower():
+            return jsonify({"error": f"Device ID '{device_id}' already exists. Please choose a unique ID."}), 400
+
     # Check if exists, update it, otherwise add it
     idx = -1
     for i, dev in enumerate(devices):
