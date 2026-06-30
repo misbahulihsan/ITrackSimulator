@@ -1558,7 +1558,8 @@
                     updateWaypointLabels();
                 }
             } else {
-                const waypointRows = document.querySelectorAll('.waypoint-row');
+                const container = document.getElementById('waypoint-list-container');
+                const waypointRows = container ? container.querySelectorAll('.waypoint-row') : [];
                 if (waypointRows.length >= 2) {
                     const firstLat = waypointRows[0].querySelector('.waypoint-lat').value;
                     const firstLon = waypointRows[0].querySelector('.waypoint-lon').value;
@@ -1965,7 +1966,8 @@
                 document.getElementById('btn-pick-end').textContent = "📍 Pick on Map";
             } else if (typeof pickingMode === 'number') {
                 const idx = pickingMode;
-                const row = document.querySelectorAll('.waypoint-row')[idx];
+                const container = document.getElementById('waypoint-list-container');
+                const row = container ? container.querySelectorAll('.waypoint-row')[idx] : null;
                 if (row) {
                     const latInput = row.querySelector('.waypoint-lat');
                     const lonInput = row.querySelector('.waypoint-lon');
