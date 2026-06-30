@@ -1432,6 +1432,7 @@
                     removeBtn.style.display = 'flex';
                 }
             });
+            adjustRequiredAttributes();
         }
 
         function renderWaypointsUI(wps) {
@@ -1580,6 +1581,7 @@
                 endLat.setAttribute('required', 'required');
                 endLon.setAttribute('required', 'required');
             }
+            adjustRequiredAttributes();
             rebuildMarkersFromInputs();
         }
 
@@ -1746,6 +1748,7 @@
                     row.querySelector('.btn-remove-waypoint').style.display = 'inline-flex';
                 }
             });
+            adjustRequiredAttributes();
         }
 
         function initSelectedWaypoints() {
@@ -1791,40 +1794,68 @@
             const multipleGroup = document.getElementById('multiple-coordinates-group');
             const selectedGroup = document.getElementById('selected-route-group');
             
-            const startLat = document.getElementById('start-lat');
-            const startLon = document.getElementById('start-lon');
-            const endLat = document.getElementById('end-lat');
-            const endLon = document.getElementById('end-lon');
-            
             if (routeType === 'selected') {
                 routeModeGroup.style.display = 'none';
                 directionGroup.style.setProperty('display', 'none', 'important');
                 multipleGroup.style.display = 'none';
                 selectedGroup.style.display = 'block';
-                
-                // Clear manual requirements
-                startLat.removeAttribute('required');
-                startLon.removeAttribute('required');
-                endLat.removeAttribute('required');
-                endLon.removeAttribute('required');
             } else {
                 routeModeGroup.style.display = 'block';
                 selectedGroup.style.display = 'none';
                 
-                // Re-apply manual requirements
                 if (routeMode === 'multiple') {
-                    startLat.removeAttribute('required');
-                    startLon.removeAttribute('required');
-                    endLat.removeAttribute('required');
-                    endLon.removeAttribute('required');
+                    directionGroup.style.setProperty('display', 'none', 'important');
+                    multipleGroup.style.display = 'block';
                 } else {
+                    directionGroup.style.setProperty('display', 'contents', 'important');
+                    multipleGroup.style.display = 'none';
+                }
+            }
+            adjustRequiredAttributes();
+        }
+
+        function adjustRequiredAttributes() {
+            const routeType = document.getElementById('route-type').value;
+            const routeMode = document.getElementById('route-mode').value;
+            
+            const startLat = document.getElementById('start-lat');
+            const startLon = document.getElementById('start-lon');
+            const endLat = document.getElementById('end-lat');
+            const endLon = document.getElementById('end-lon');
+            
+            // 1. Reset all first
+            startLat.removeAttribute('required');
+            startLon.removeAttribute('required');
+            endLat.removeAttribute('required');
+            endLon.removeAttribute('required');
+            
+            document.querySelectorAll('#waypoint-list-container .waypoint-lat, #waypoint-list-container .waypoint-lon').forEach(input => {
+                input.removeAttribute('required');
+            });
+            
+            document.querySelectorAll('#selected-waypoint-list-container .waypoint-place, #selected-waypoint-list-container .waypoint-subplace').forEach(select => {
+                select.removeAttribute('required');
+            });
+            
+            // 2. Add required back to the ACTIVE inputs only
+            if (routeType === 'selected') {
+                document.querySelectorAll('#selected-waypoint-list-container .waypoint-place, #selected-waypoint-list-container .waypoint-subplace').forEach(select => {
+                    select.setAttribute('required', 'required');
+                });
+            } else {
+                // manual mode
+                if (routeMode === 'multiple') {
+                    document.querySelectorAll('#waypoint-list-container .waypoint-lat, #waypoint-list-container .waypoint-lon').forEach(input => {
+                        input.setAttribute('required', 'required');
+                    });
+                } else {
+                    // direction mode
                     startLat.setAttribute('required', 'required');
                     startLon.setAttribute('required', 'required');
                     endLat.setAttribute('required', 'required');
                     endLon.setAttribute('required', 'required');
                 }
             }
-            rebuildMarkersFromInputs();
         }
 
         function rebuildMarkersFromInputs(focusRow = null) {
