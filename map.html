@@ -2144,7 +2144,7 @@
         // Load route GeoJSON path from server static routes folder
         function loadRouteGeoJSON(devId) {
             const safeName = devId.toLowerCase().replace(/ /g, '_');
-            const path = `${API_BASE}/routes/${safeName}.geojson`;
+            const path = `${API_BASE}/routes/${safeName}.geojson?t=${Date.now()}`;
             
             // Avoid reloading if already plotted
             if (routePaths[devId]) return;
@@ -2461,6 +2461,19 @@
                 document.getElementById('device-id').disabled = false;
                 document.getElementById('form-title').textContent = "Add New Device";
                 document.querySelector('#device-form button[type="submit"]').textContent = "Save & Start";
+                
+                // Clear old route paths from map and cache so they are re-fetched and re-drawn
+                const oldId = currentEditingDeviceId;
+                const newId = payload.id;
+                if (oldId && routePaths[oldId]) {
+                    map.removeLayer(routePaths[oldId]);
+                    delete routePaths[oldId];
+                }
+                if (routePaths[newId]) {
+                    map.removeLayer(routePaths[newId]);
+                    delete routePaths[newId];
+                }
+                
                 currentEditingDeviceId = null;
                 clearPickedMarkers();
                 fetchDevices();
