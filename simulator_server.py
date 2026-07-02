@@ -496,6 +496,36 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
         })
         return pt, 0, bearing, "TRAFFIC_LIGHT"
 
+    # 4b. Ferry Loading Stop
+    if state == "FERRY_LOADING":
+        current_speed = 0.0
+        state_timer -= interval
+        pt, bearing, _ = interpolate_position(route, segments_dist, cumulative_dist, distance_traveled)
+        if state_timer <= 0:
+            state = "DRIVING"
+            state_timer = 0
+            print(f"[{device_id}] Boarding complete. Ferry is now moving.")
+        state_vars.update({
+            "state": state, "lat": pt["lat"], "lon": pt["lon"], "speed": 0, "bearing": bearing,
+            "state_timer": state_timer, "distance_traveled": distance_traveled, "is_reversed": is_reversed
+        })
+        return pt, 0, bearing, "PORT LOADING"
+
+    # 4c. Ferry Unloading Stop
+    if state == "FERRY_UNLOADING":
+        current_speed = 0.0
+        state_timer -= interval
+        pt, bearing, _ = interpolate_position(route, segments_dist, cumulative_dist, distance_traveled)
+        if state_timer <= 0:
+            state = "DRIVING"
+            state_timer = 0
+            print(f"[{device_id}] Unboarding complete. Vehicle is now driving on road.")
+        state_vars.update({
+            "state": state, "lat": pt["lat"], "lon": pt["lon"], "speed": 0, "bearing": bearing,
+            "state_timer": state_timer, "distance_traveled": distance_traveled, "is_reversed": is_reversed
+        })
+        return pt, 0, bearing, "PORT UNLOADING"
+
     # 5. Parked Stop
     if state == "PARKED":
         current_speed = 0.0
@@ -512,6 +542,30 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
     # 6. Driving Leg
     if state == "DRIVING":
         pt, bearing, idx = interpolate_position(route, segments_dist, cumulative_dist, distance_traveled)
+        
+        # Check transition to/from ferry
+        is_on_ferry = pt.get("is_ferry", False)
+        was_on_ferry = state_vars.get("was_on_ferry", False)
+        
+        if is_on_ferry and not was_on_ferry:
+            state = "FERRY_LOADING"
+            state_timer = random.randint(45, 60) * 60
+            state_vars.update({
+                "state": state, "state_timer": state_timer, "was_on_ferry": True,
+                "current_speed": 0.0
+            })
+            print(f"[{device_id}] Arrived at port. Boarding ferry... Loading delay: {state_timer // 60} minutes.")
+            return pt, 0, bearing, "PORT LOADING"
+            
+        elif not is_on_ferry and was_on_ferry:
+            state = "FERRY_UNLOADING"
+            state_timer = random.randint(20, 35) * 60
+            state_vars.update({
+                "state": state, "state_timer": state_timer, "was_on_ferry": False,
+                "current_speed": 0.0
+            })
+            print(f"[{device_id}] Ferry docked. Unboarding ferry... Unloading delay: {state_timer // 60} minutes.")
+            return pt, 0, bearing, "PORT UNLOADING"
         has_corner = check_upcoming_corners(route, cumulative_dist, distance_traveled, bearing, look_ahead=120)
         
         # Behavior setup
@@ -685,7 +739,8 @@ def run_simulation(device, traccar_host, shutdown_event):
         "state_timer": 0,
         "is_reversed": False,
         "arrival_time": 0.0,
-        "last_start_date": ""
+        "last_start_date": "",
+        "was_on_ferry": False
     }
     
     trip_type = device.get("trip_type", "single")
@@ -731,6 +786,7 @@ def run_simulation(device, traccar_host, shutdown_event):
                 state_vars["state"] = state_data.get("state", "DRIVING")
                 state_vars["arrival_time"] = state_data.get("arrival_time", 0.0)
                 state_vars["last_start_date"] = state_data.get("last_start_date", "")
+                state_vars["was_on_ferry"] = state_data.get("was_on_ferry", False)
         except Exception as e:
             print(f"[{device_id}] Error loading state: {e}. Starting fresh.")
     else:
@@ -784,10 +840,10 @@ def run_simulation(device, traccar_host, shutdown_event):
                     total_dist = cumulative_dist[-1]
                     
                 # Send offline replay position
-                if state_vars["state"] in ["DRIVING", "TRAFFIC_LIGHT", "CORNERING", "SPEEDING", "TRAFFIC", "WAITING_RETURN"]:
+                if state_vars["state"] in ["DRIVING", "TRAFFIC_LIGHT", "CORNERING", "SPEEDING", "TRAFFIC", "WAITING_RETURN", "FERRY_LOADING", "FERRY_UNLOADING"]:
+                    ignition = state_vars["state"] not in ["PARKED", "SCHEDULED", "COMPLETED", "WAITING_RETURN"]
                     send_osmand_position(traccar_host, device_id, pt, speed, bearing,
-                                         (state_vars["state"] != "WAITING_RETURN"),
-                                         "OFFLINE_REPLAY", int(tick_time))
+                                         ignition, "OFFLINE_REPLAY", int(tick_time))
                     time.sleep(0.05)
                     
     while not shutdown_event.is_set():
@@ -839,7 +895,7 @@ def run_simulation(device, traccar_host, shutdown_event):
             active_rit_label = "RIT-B" if (normalized_trip_type == "single" and rit_label == "RIT-B") or (normalized_trip_type == "nonstop" and state_vars["is_reversed"]) else "RIT-A"
             telemetry_data[device_id] = {
                 "lat": pt["lat"], "lon": pt["lon"], "speed": speed, "bearing": bearing,
-                "state": f"{state_label} ({active_rit_label})" if state_label in ["DRIVING", "CRUISING", "CORNERING", "SPEEDING", "TRAFFIC", "ON FERRY"] or state_label.startswith("LAYOVER") else state_label,
+                "state": f"{state_label} ({active_rit_label})" if state_label in ["DRIVING", "CRUISING", "CORNERING", "SPEEDING", "TRAFFIC", "ON FERRY", "PORT LOADING", "PORT UNLOADING"] or state_label.startswith("LAYOVER") else state_label,
                 "progress": progress_val,
                 "distance_traveled": state_vars["distance_traveled"], "total_distance": total_dist,
                 "is_reversed": state_vars["is_reversed"],
@@ -857,7 +913,11 @@ def run_simulation(device, traccar_host, shutdown_event):
             state_vars["is_reversed"],
             state_vars["state"],
             state_vars["arrival_time"],
-            state_vars["last_start_date"]
+            state_vars["last_start_date"],
+            state_vars.get("layover_duration", 0),
+            state_vars.get("state_timer", 0),
+            state_vars.get("current_speed", 0.0),
+            state_vars.get("was_on_ferry", False)
         )
         
         sleep_gracefully(interval, tick_start, shutdown_event)
@@ -887,7 +947,7 @@ def send_osmand_position(traccar_host, device_id, point, speed_kmh, bearing, ign
     except Exception as e:
         print(f"[{device_id}] Fail to send: {e}")
 
-def save_state_file_extended(path, dist, rev, state, arrival, last_start_date="", layover_duration=0):
+def save_state_file_extended(path, dist, rev, state, arrival, last_start_date="", layover_duration=0, state_timer=0, current_speed=0.0, was_on_ferry=False):
     try:
         with open(path, "w") as sf:
             json.dump({
@@ -897,7 +957,10 @@ def save_state_file_extended(path, dist, rev, state, arrival, last_start_date=""
                 "state": state,
                 "arrival_time": arrival,
                 "last_start_date": last_start_date,
-                "layover_duration": layover_duration
+                "layover_duration": layover_duration,
+                "state_timer": state_timer,
+                "current_speed": current_speed,
+                "was_on_ferry": was_on_ferry
             }, sf, indent=2)
     except Exception as e:
         pass
