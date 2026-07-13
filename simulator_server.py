@@ -799,6 +799,12 @@ def run_simulation(device, traccar_host, shutdown_event):
     segments_dist, cumulative_dist = calculate_route_distances(route)
     total_dist = cumulative_dist[-1]
     
+    # Initialize variables for Smart Movement Detection
+    last_sent_pos = None
+    last_sent_ignition = None
+    last_sent_status = None
+    last_sent_time = 0.0
+
     # Catch-up logic using simulation_step
     now = time.time()
     last_updated = 0.0
@@ -839,11 +845,37 @@ def run_simulation(device, traccar_host, shutdown_event):
                     segments_dist, cumulative_dist = calculate_route_distances(route)
                     total_dist = cumulative_dist[-1]
                     
-                # Send offline replay position
-                if state_vars["state"] in ["DRIVING", "TRAFFIC_LIGHT", "CORNERING", "SPEEDING", "TRAFFIC", "WAITING_RETURN", "FERRY_LOADING", "FERRY_UNLOADING"]:
-                    ignition = state_vars["state"] not in ["PARKED", "SCHEDULED", "COMPLETED", "WAITING_RETURN"]
+                # Send offline replay position with Smart Movement Detection
+                ignition = state_vars["state"] not in ["PARKED", "SCHEDULED", "COMPLETED", "WAITING_RETURN"]
+                
+                should_send = False
+                distance_from_last = 0.0
+                if last_sent_pos:
+                    distance_from_last = great_circle(
+                        (pt["lat"], pt["lon"]),
+                        last_sent_pos
+                    ).meters
+                
+                time_since_last_send = tick_time - last_sent_time if last_sent_time > 0 else 999999.0
+                
+                if not last_sent_pos:
+                    should_send = True
+                elif distance_from_last >= 10.0:
+                    should_send = True
+                elif ignition != last_sent_ignition:
+                    should_send = True
+                elif status_desc != last_sent_status:
+                    should_send = True
+                elif time_since_last_send >= 600:
+                    should_send = True
+                    
+                if should_send:
                     send_osmand_position(traccar_host, device_id, pt, speed, bearing,
                                          ignition, "OFFLINE_REPLAY", int(tick_time))
+                    last_sent_pos = (pt["lat"], pt["lon"])
+                    last_sent_ignition = ignition
+                    last_sent_status = status_desc
+                    last_sent_time = tick_time
                     time.sleep(0.05)
                     
     while not shutdown_event.is_set():
@@ -863,7 +895,35 @@ def run_simulation(device, traccar_host, shutdown_event):
             total_dist = cumulative_dist[-1]
             
         ignition = state_vars["state"] not in ["PARKED", "SCHEDULED", "COMPLETED", "WAITING_RETURN"]
-        send_osmand_position(traccar_host, device_id, pt, speed, bearing, ignition, status_desc)
+        
+        # Send live position with Smart Movement Detection
+        should_send = False
+        distance_from_last = 0.0
+        if last_sent_pos:
+            distance_from_last = great_circle(
+                (pt["lat"], pt["lon"]),
+                last_sent_pos
+            ).meters
+        
+        time_since_last_send = tick_start - last_sent_time if last_sent_time > 0 else 999999.0
+        
+        if not last_sent_pos:
+            should_send = True
+        elif distance_from_last >= 10.0:
+            should_send = True
+        elif ignition != last_sent_ignition:
+            should_send = True
+        elif status_desc != last_sent_status:
+            should_send = True
+        elif time_since_last_send >= 600:
+            should_send = True
+            
+        if should_send:
+            send_osmand_position(traccar_host, device_id, pt, speed, bearing, ignition, status_desc)
+            last_sent_pos = (pt["lat"], pt["lon"])
+            last_sent_ignition = ignition
+            last_sent_status = status_desc
+            last_sent_time = tick_start
         
         # Telemetry updates
         progress_val = 0
