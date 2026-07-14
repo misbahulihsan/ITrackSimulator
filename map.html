@@ -1030,6 +1030,7 @@
                             <select id="trip-type">
                                 <option value="single">Single Trip</option>
                                 <option value="nonstop">24 Hours Nonstop</option>
+                                <option value="continuous">Continuous RIT</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1300,6 +1301,12 @@
                 document.getElementById('rita-arrive-group').style.display = (ritLabel === 'RIT-A') ? 'flex' : 'none';
                 document.getElementById('ritb-depart-group').style.display = (ritLabel === 'RIT-B') ? 'flex' : 'none';
                 document.getElementById('ritb-arrive-group').style.display = (ritLabel === 'RIT-B') ? 'flex' : 'none';
+                document.getElementById('start-time-group').style.display = 'none';
+            } else if (tripType === 'continuous') {
+                document.getElementById('rita-depart-group').style.display = 'flex';
+                document.getElementById('rita-arrive-group').style.display = 'flex';
+                document.getElementById('ritb-depart-group').style.display = 'flex';
+                document.getElementById('ritb-arrive-group').style.display = 'flex';
                 document.getElementById('start-time-group').style.display = 'none';
             } else {
                 // nonstop
@@ -2142,6 +2149,7 @@
                                 ${isRunning ? '⏸ Pause' : '▶ Start'}
                             </button>
                             <button class="btn-secondary btn-xs" onclick="event.stopPropagation(); editDevice('${dev.id}')" style="padding: 3px 6px;">✏️ Edit</button>
+                            <button class="btn-secondary btn-xs" onclick="event.stopPropagation(); rerouteDevice('${dev.id}')" style="padding: 3px 6px;">🔄 ReRoute</button>
                             <button class="btn-danger btn-xs" onclick="event.stopPropagation(); deleteDevice('${dev.id}')" style="padding: 3px 6px;">🗑️ Delete</button>
                         </div>
                     </div>
@@ -2278,6 +2286,24 @@
                     fetchDevices();
                 })
                  .catch(err => console.error(err));
+        };
+
+        // ReRoute / Sync device configuration
+        window.rerouteDevice = function(devId) {
+            if (!confirm(`Are you sure you want to ReRoute and Synchronize ${devId}? This will recalculate the route and sync the position based on departure time.`)) return;
+            fetch(`${API_BASE}/api/devices/${devId}/reroute`, { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.error) {
+                        alert(`Reroute failed: ${res.error}`);
+                    } else {
+                        fetchDevices();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert(`Reroute failed: ${err.message}`);
+                });
         };
 
         // Edit device configuration (form population)

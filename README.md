@@ -37,6 +37,8 @@ Simulator ini memiliki fitur UI glassmorphic yang responsif, penentuan koordinat
 * **Mode Perjalanan Fleksibel**:
   * **Sekali Jalan (Single Trip)**: Hentikan simulasi setelah tiba di tujuan.
   * **24-Jam Nonstop**: Terus berputar bolak-balik antara koordinat rute dengan waktu istirahat (layover) acak (misalnya 1 hingga 5 jam).
+  * **Continuous RIT**: Berjalan bolak-balik sepanjang hari dengan keberangkatan setiap RIT yang diatur ketat berdasarkan jadwal **RIT-A Depart Time** dan **RIT-B Depart Time** (bukan waktu layover acak).
+    * *Contoh*: Jika diatur `RIT-A Depart Time` = `09:15` dan `RIT-B Depart Time` = `21:15`. Kendaraan akan diam di lokasi awal (Start) hingga jam `09:15` untuk memulai perjalanan RIT-A. Ketika sampai di tujuan (misalkan pukul `18:25`), kendaraan akan parkir dan diam di lokasi tujuan menunggu hingga jam `21:15` tiba untuk secara otomatis berbalik arah dan memulai perjalanan pulang RIT-B. Setelah RIT-B selesai, kendaraan akan menunggu hingga keesokan harinya pukul `09:15` untuk mengulangi siklus.
 * **Label RIT**: Mendukung pelacakan rute berangkat (`RIT-A`) dan rute kembali (`RIT-B`).
 * **Jadwal Waktu RIT**: Mengatur jadwal keberangkatan dan kedatangan untuk RIT-A dan RIT-B.
 * **Pencatatan Database RIT**: Secara otomatis mencatat waktu keberangkatan dan kedatangan aktual ke database di tabel `rit_runs`.
@@ -146,6 +148,6 @@ sshpass -p 'ihsan123' rsync -avz -e "ssh -o PubkeyAuthentication=no -o StrictHos
 4. Klik **+ Tambah Perangkat** untuk mendaftarkan simulator kendaraan baru:
    * Pilih **Jenis Kendaraan** (Mobil, Sepeda Motor, Bus).
    * Pilih **Koordinat Awal/Akhir** langsung dengan mengklik tombol "Pilih di Peta" dan memilih lokasi di peta. Atau pilih mode rute **Multi-titik** untuk menambahkan beberapa koordinat manual, atau pilih **Rute Pilihan** untuk memilih koordinat dari dropdown Tempat & Sub-Tempat yang telah ditentukan.
-   * Konfigurasikan **Jenis Perjalanan** (Sekali Jalan atau Nonstop) dan atur waktu keberangkatan/kedatangan RIT-A dan RIT-B yang relevan.
+   * Konfigurasikan **Jenis Perjalanan** (Sekali Jalan, Nonstop, atau Continuous RIT) dan atur waktu keberangkatan/kedatangan RIT-A dan RIT-B yang relevan.
 5. Klik **Simpan & Mulai**. Simulator akan mengambil rute, menyimpannya di cache, dan mulai mengirimkan posisi ke Server Traccar Anda.
 6. Pantau progres langsung, kecepatan, bearing, dan jarak langsung di peta.
