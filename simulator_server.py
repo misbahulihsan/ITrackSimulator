@@ -77,7 +77,7 @@ simulations_lock = threading.Lock()
 def load_config():
     return {
         "traccar": {
-            "host": database.get_setting("traccar_host", "tracking.misbahulihsan.com")
+            "host": database.get_setting("traccar_host", "dummy.misbahulihsan.com")
         },
         "devices": database.get_devices()
     }
@@ -1388,6 +1388,285 @@ def api_whoami():
         "role": session.get("role", "")
     })
 
+# ── Servers API ────────────────────────────────────────────────────────────────
+
+@app.route('/api/servers', methods=['GET'])
+def api_get_servers():
+    return jsonify(database.get_servers())
+
+@app.route('/api/servers', methods=['POST'])
+def api_create_server():
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    host = data.get('host', '').strip()
+    port = data.get('port', 443)
+    protocol = data.get('protocol', 'https')
+    if not name or not host:
+        return jsonify({'error': 'name dan host wajib diisi'}), 400
+    if protocol not in ['http', 'https']:
+        return jsonify({'error': 'protocol harus http atau https'}), 400
+    server_id = database.create_server(name, host, port, protocol)
+    return jsonify({'success': True, 'id': server_id})
+
+@app.route('/api/servers/<int:server_id>', methods=['GET'])
+def api_get_server(server_id):
+    srv = database.get_server(server_id)
+    if not srv:
+        return jsonify({'error': 'Server tidak ditemukan'}), 404
+    return jsonify(srv)
+
+@app.route('/api/servers/<int:server_id>', methods=['PUT'])
+def api_update_server(server_id):
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    host = data.get('host', '').strip()
+    port = data.get('port', 443)
+    protocol = data.get('protocol', 'https')
+    if not name or not host:
+        return jsonify({'error': 'name dan host wajib diisi'}), 400
+    database.update_server(server_id, name, host, port, protocol)
+    return jsonify({'success': True})
+
+@app.route('/api/servers/<int:server_id>', methods=['DELETE'])
+def api_delete_server(server_id):
+    ok = database.delete_server(server_id)
+    if ok:
+        return jsonify({'success': True})
+    return jsonify({'error': 'Server tidak ditemukan'}), 404
+
+# ── Trips API ──────────────────────────────────────────────────────────────────
+
+@app.route('/api/trips', methods=['GET'])
+def api_get_trips():
+    return jsonify(database.get_trips())
+
+@app.route('/api/trips', methods=['POST'])
+def api_create_trip():
+    data = request.json or {}
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'name wajib diisi'}), 400
+    trip_id = database.create_trip(data)
+    # Clear cached route for this trip name if any (future: keyed by trip_id)
+    return jsonify({'success': True, 'id': trip_id})
+
+@app.route('/api/trips/<int:trip_id>', methods=['GET'])
+def api_get_trip(trip_id):
+    trip = database.get_trip(trip_id)
+    if not trip:
+        return jsonify({'error': 'Trip tidak ditemukan'}), 404
+    return jsonify(trip)
+
+@app.route('/api/trips/<int:trip_id>', methods=['PUT'])
+def api_update_trip(trip_id):
+    data = request.json or {}
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'name wajib diisi'}), 400
+    database.update_trip(trip_id, data)
+    # Clear cached route files so it re-fetches
+    safe_name = f"trip_{trip_id}"
+    for fname in [f"{safe_name}.json", f"{safe_name}.geojson"]:
+        fpath = os.path.join(ROUTES_DIR, fname)
+        if os.path.exists(fpath):
+            try:
+                os.remove(fpath)
+            except Exception:
+                pass
+    return jsonify({'success': True})
+
+@app.route('/api/trips/<int:trip_id>', methods=['DELETE'])
+def api_delete_trip(trip_id):
+    ok = database.delete_trip(trip_id)
+    if ok:
+        return jsonify({'success': True})
+    return jsonify({'error': 'Trip tidak ditemukan'}), 404
+
+# ── Sim Devices API ────────────────────────────────────────────────────────────
+
+@app.route('/api/sim-devices', methods=['GET'])
+def api_get_sim_devices():
+    return jsonify(database.get_sim_devices())
+
+@app.route('/api/sim-devices', methods=['POST'])
+def api_create_sim_device():
+    data = request.json or {}
+    device_id = data.get('device_id', '').strip()
+    name = data.get('name', '').strip()
+    device_type = data.get('type', 'car')
+    if not device_id:
+        return jsonify({'error': 'device_id wajib diisi'}), 400
+    if device_type not in ['car', 'motorcycle', 'bus']:
+        return jsonify({'error': 'type harus car, motorcycle, atau bus'}), 400
+    new_id = database.create_sim_device(device_id, name, device_type)
+    if new_id is None:
+        return jsonify({'error': f"Device ID '{device_id}' sudah ada"}), 409
+    return jsonify({'success': True, 'id': new_id})
+
+@app.route('/api/sim-devices/<int:sim_device_id>', methods=['GET'])
+def api_get_sim_device(sim_device_id):
+    dev = database.get_sim_device(sim_device_id)
+    if not dev:
+        return jsonify({'error': 'Device tidak ditemukan'}), 404
+    return jsonify(dev)
+
+@app.route('/api/sim-devices/<int:sim_device_id>', methods=['PUT'])
+def api_update_sim_device(sim_device_id):
+    data = request.json or {}
+    device_id = data.get('device_id', '').strip()
+    name = data.get('name', '').strip()
+    device_type = data.get('type', 'car')
+    if not device_id:
+        return jsonify({'error': 'device_id wajib diisi'}), 400
+    ok = database.update_sim_device(sim_device_id, device_id, name, device_type)
+    if ok:
+        return jsonify({'success': True})
+    return jsonify({'error': f"Device ID '{device_id}' sudah digunakan"}), 409
+
+@app.route('/api/sim-devices/<int:sim_device_id>', methods=['DELETE'])
+def api_delete_sim_device(sim_device_id):
+    ok = database.delete_sim_device(sim_device_id)
+    if ok:
+        return jsonify({'success': True})
+    return jsonify({'error': 'Device tidak ditemukan'}), 404
+
+# ── Services API ───────────────────────────────────────────────────────────────
+
+def _build_device_dict_from_service(svc):
+    """Konversi service record ke format device dict yang dipakai simulation engine."""
+    trip = database.get_trip(svc['trip_id'])
+    sim_dev = database.get_sim_device(svc['sim_device_id'])
+    if not trip or not sim_dev:
+        return None, None
+    srv = database.get_server(svc['server_id'])
+    traccar_host = srv['host'] if srv else 'dummy.misbahulihsan.com'
+    device = {
+        "id": sim_dev['device_id'],
+        "name": sim_dev.get('name', sim_dev['device_id']),
+        "type": sim_dev.get('type', 'car'),
+        "start": {"lat": trip['start_lat'], "lon": trip['start_lon']},
+        "end":   {"lat": trip['end_lat'],   "lon": trip['end_lon']},
+        "waypoints": trip.get('waypoints', []),
+        "route_mode": trip.get('route_mode', 'direction'),
+        "min_speed": trip.get('min_speed', 20),
+        "avg_speed": trip.get('avg_speed', 50),
+        "max_speed": trip.get('max_speed', 80),
+        "ferry_speed": trip.get('ferry_speed', 25),
+        "interval": svc.get('interval', 30),
+        "trip_type": trip.get('trip_type', 'single'),
+        "start_time": trip.get('rita_depart', ''),
+        "return_time": trip.get('ritb_depart', ''),
+        "rita_depart": trip.get('rita_depart', ''),
+        "rita_arrive": trip.get('rita_arrive', ''),
+        "ritb_depart": trip.get('ritb_depart', ''),
+        "ritb_arrive": trip.get('ritb_arrive', ''),
+        "nonstop_layover_min": trip.get('nonstop_layover_min', 60),
+        "nonstop_layover_max": trip.get('nonstop_layover_max', 60),
+        "rit_label": "RIT-A",
+        "route_type": "manual",
+        "start_place_id": trip.get('start_place_id'),
+        "start_subplace_id": trip.get('start_subplace_id'),
+        "end_place_id": trip.get('end_place_id'),
+        "end_subplace_id": trip.get('end_subplace_id'),
+        "_service_id": svc['id'],  # tag for tracking
+    }
+    return device, traccar_host
+
+@app.route('/api/services', methods=['GET'])
+def api_get_services():
+    services = database.get_services()
+    # Enrich with running status from memory
+    with simulations_lock:
+        for svc in services:
+            dev_id = svc.get('device_id', '')
+            svc['is_running'] = dev_id in active_simulations
+    return jsonify(services)
+
+@app.route('/api/services', methods=['POST'])
+def api_create_service():
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    server_id = data.get('server_id')
+    trip_id = data.get('trip_id')
+    sim_device_id = data.get('sim_device_id')
+    interval = data.get('interval', 30)
+    if not name:
+        return jsonify({'error': 'name wajib diisi'}), 400
+    if not server_id or not trip_id or not sim_device_id:
+        return jsonify({'error': 'server, trip, dan device wajib dipilih'}), 400
+    new_id = database.create_service(name, server_id, trip_id, sim_device_id, interval)
+    return jsonify({'success': True, 'id': new_id})
+
+@app.route('/api/services/<int:service_id>', methods=['PUT'])
+def api_update_service(service_id):
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    server_id = data.get('server_id')
+    trip_id = data.get('trip_id')
+    sim_device_id = data.get('sim_device_id')
+    interval = data.get('interval', 30)
+    if not name:
+        return jsonify({'error': 'name wajib diisi'}), 400
+    database.update_service(service_id, name, server_id, trip_id, sim_device_id, interval)
+    return jsonify({'success': True})
+
+@app.route('/api/services/<int:service_id>', methods=['DELETE'])
+def api_delete_service(service_id):
+    svc = database.get_service(service_id)
+    if not svc:
+        return jsonify({'error': 'Service tidak ditemukan'}), 404
+    # Stop simulation if running
+    dev_id = svc.get('device_id', '')
+    if dev_id:
+        stop_simulation_thread(dev_id)
+    database.delete_service(service_id)
+    return jsonify({'success': True})
+
+@app.route('/api/services/<int:service_id>/start', methods=['POST'])
+def api_start_service(service_id):
+    svc = database.get_service(service_id)
+    if not svc:
+        return jsonify({'error': 'Service tidak ditemukan'}), 404
+    device, traccar_host = _build_device_dict_from_service(svc)
+    if not device:
+        return jsonify({'error': 'Trip atau Device tidak valid'}), 400
+    started = start_simulation_thread(device, traccar_host)
+    if started:
+        database.set_service_status(service_id, 'running')
+    return jsonify({'success': started})
+
+@app.route('/api/services/<int:service_id>/stop', methods=['POST'])
+def api_stop_service(service_id):
+    svc = database.get_service(service_id)
+    if not svc:
+        return jsonify({'error': 'Service tidak ditemukan'}), 404
+    dev_id = svc.get('device_id', '')
+    stopped = stop_simulation_thread(dev_id) if dev_id else False
+    database.set_service_status(service_id, 'stopped')
+    return jsonify({'success': True})
+
+@app.route('/api/services/<int:service_id>/reroute', methods=['POST'])
+def api_reroute_service(service_id):
+    svc = database.get_service(service_id)
+    if not svc:
+        return jsonify({'error': 'Service tidak ditemukan'}), 404
+    device, traccar_host = _build_device_dict_from_service(svc)
+    if not device:
+        return jsonify({'error': 'Trip atau Device tidak valid'}), 400
+    dev_id = device['id']
+    stop_simulation_thread(dev_id)
+    # Clear cached route
+    safe_name = sanitize_device_id(dev_id)
+    for fname in [f"{safe_name}.json", f"{safe_name}.geojson", f"{safe_name}_state.json"]:
+        fpath_r = os.path.join(ROUTES_DIR, fname) if not fname.endswith('_state.json') else os.path.join(STATE_DIR, fname)
+        if os.path.exists(fpath_r):
+            try:
+                os.remove(fpath_r)
+            except Exception:
+                pass
+    started = start_simulation_thread(device, traccar_host)
+    if started:
+        database.set_service_status(service_id, 'running')
+    return jsonify({'success': started})
+
 # REST API Endpoints
 @app.route('/')
 def index():
@@ -1856,9 +2135,12 @@ if __name__ == '__main__':
         start_all_simulations()
     else:
         print("Service is stopped. Not starting simulations on startup.")
-        
+
+    _port = int(os.environ.get('APP_PORT', 8084))
+    print(f"[SERVER] Running on http://0.0.0.0:{_port}")
+    print(f"[SERVER] Traccar host: {database.get_setting('traccar_host', 'dummy.misbahulihsan.com')}")
     try:
-        app.run(host='0.0.0.0', port=8083, debug=False, threaded=True)
+        app.run(host='0.0.0.0', port=_port, debug=False, threaded=True)
     finally:
         print("Stopping all active simulations before exit...")
         stop_all_simulations()

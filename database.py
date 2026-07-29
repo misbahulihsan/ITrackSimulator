@@ -93,6 +93,75 @@ def init_db():
         last_login TEXT
     )
     """)
+
+    # ── New Architecture Tables ─────────────────────────────────────────────────────
+
+    # Servers — daftar server Traccar tujuan
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS servers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        host TEXT NOT NULL,
+        port INTEGER DEFAULT 443,
+        protocol TEXT DEFAULT 'https',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Trips — definisi perjalanan (tanpa device)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS trips (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        start_lat REAL NOT NULL DEFAULT 0,
+        start_lon REAL NOT NULL DEFAULT 0,
+        end_lat REAL NOT NULL DEFAULT 0,
+        end_lon REAL NOT NULL DEFAULT 0,
+        route_mode TEXT DEFAULT 'direction',
+        waypoints TEXT DEFAULT '[]',
+        min_speed INTEGER DEFAULT 20,
+        avg_speed INTEGER DEFAULT 50,
+        max_speed INTEGER DEFAULT 80,
+        ferry_speed INTEGER DEFAULT 25,
+        trip_type TEXT DEFAULT 'single',
+        rita_depart TEXT DEFAULT '',
+        rita_arrive TEXT DEFAULT '',
+        ritb_depart TEXT DEFAULT '',
+        ritb_arrive TEXT DEFAULT '',
+        nonstop_layover_min INTEGER DEFAULT 60,
+        nonstop_layover_max INTEGER DEFAULT 60,
+        start_place_id INTEGER,
+        start_subplace_id INTEGER,
+        end_place_id INTEGER,
+        end_subplace_id INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Sim Devices — device identifier (terpisah dari konfigurasi trip)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sim_devices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT UNIQUE NOT NULL,
+        name TEXT DEFAULT '',
+        type TEXT DEFAULT 'car',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Services — menghubungkan Server + Trip + Device menjadi satu simulasi
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        server_id INTEGER REFERENCES servers(id),
+        trip_id INTEGER REFERENCES trips(id),
+        sim_device_id INTEGER REFERENCES sim_devices(id),
+        interval INTEGER DEFAULT 30,
+        status TEXT DEFAULT 'stopped',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     
     # Create places_subplaces table
     cursor.execute("""
@@ -210,11 +279,117 @@ def init_db():
             "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
             ("admin", default_hash, "admin")
         )
+        cur2.commit() if hasattr(cur2, 'commit') else None
         conn2.commit()
         print("[DB] Default admin user created. Username: admin | Password: ihsan456")
         print("[DB] Segera ganti password default via /api/users/change-password !")
+
+    # Seed default server jika belum ada
+    cur2.execute("SELECT COUNT(*) FROM servers")
+    if cur2.fetchone()[0] == 0:
+        cur2.execute(
+            "INSERT INTO servers (name, host, port, protocol) VALUES (?, ?, ?, ?)",
+            ("Dummy / Testing", "dummy.misbahulihsan.com", 443, "https")
+        )
+        conn2.commit()
+        print("[DB] Default server seeded: dummy.misbahulihsan.com")
+
+    # Seed default sim_devices jika belum ada
+    cur2.execute("SELECT COUNT(*) FROM sim_devices")
+    if cur2.fetchone()[0] == 0:
+        default_devices = [
+            ("BUS001", "K 1256 AT", "bus"),
+            ("BUS002", "K 2342 ST", "bus"),
+            ("mtr001", "B 1267 OK", "motorcycle"),
+            ("mtr002", "L 2389 ST", "motorcycle"),
+            ("car001", "K 1987 UR", "car"),
+            ("car003", "P 2691 KD", "car"),
+            ("BUS004", "BG 4523 GN", "bus")
+        ]
+        cur2.executemany(
+            "INSERT INTO sim_devices (device_id, name, type) VALUES (?, ?, ?)",
+            default_devices
+        )
+        conn2.commit()
+        print(f"[DB] {len(default_devices)} default sim_devices seeded.")
+
+    # Seed default trips jika belum ada (termasuk Semarang_Surabaya & Surabaya_Semarang)
+    cur2.execute("SELECT COUNT(*) FROM trips")
+    if cur2.fetchone()[0] == 0:
+        default_trips = [
+            {
+                "name": "Semarang_Surabaya",
+                "start_lat": -6.989373644295812, "start_lon": 110.42359556436682,
+                "end_lat": -7.34840536472191, "end_lon": 112.72666089492228,
+                "min_speed": 20, "avg_speed": 55, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Surabaya_Semarang",
+                "start_lat": -7.34840536472191, "start_lon": 112.72666089492228,
+                "end_lat": -6.989373644295812, "end_lon": 110.42359556436682,
+                "min_speed": 20, "avg_speed": 55, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Yogyakarta_Bekasi",
+                "start_lat": -7.813745, "start_lon": 110.362344,
+                "end_lat": -6.247396, "end_lon": 106.997051,
+                "min_speed": 20, "avg_speed": 65, "max_speed": 90, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Bekasi_Yogyakarta",
+                "start_lat": -6.247396, "start_lon": 106.997051,
+                "end_lat": -7.813745, "end_lon": 110.362344,
+                "min_speed": 20, "avg_speed": 65, "max_speed": 90, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Kudus_Yogyakarta",
+                "start_lat": -6.763278, "start_lon": 110.831666,
+                "end_lat": -7.814668, "end_lon": 110.368623,
+                "min_speed": 20, "avg_speed": 55, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Yogyakarta_Kudus",
+                "start_lat": -7.814668, "start_lon": 110.368623,
+                "end_lat": -6.763278, "end_lon": 110.831666,
+                "min_speed": 20, "avg_speed": 55, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Palembang_Surabaya",
+                "start_lat": -2.995822, "start_lon": 104.776611,
+                "end_lat": -7.24875, "end_lon": 112.739639,
+                "min_speed": 20, "avg_speed": 65, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            },
+            {
+                "name": "Surabaya_Palembang",
+                "start_lat": -7.24875, "start_lon": 112.739639,
+                "end_lat": -2.995822, "end_lon": 104.776611,
+                "min_speed": 20, "avg_speed": 65, "max_speed": 120, "ferry_speed": 25,
+                "trip_type": "nonstop"
+            }
+        ]
+        for dt in default_trips:
+            cur2.execute("""
+            INSERT INTO trips (
+                name, start_lat, start_lon, end_lat, end_lon,
+                route_mode, waypoints, min_speed, avg_speed, max_speed, ferry_speed, trip_type
+            ) VALUES (?, ?, ?, ?, ?, 'direction', '[]', ?, ?, ?, ?, ?)
+            """, (
+                dt["name"], dt["start_lat"], dt["start_lon"], dt["end_lat"], dt["end_lon"],
+                dt["min_speed"], dt["avg_speed"], dt["max_speed"], dt["ferry_speed"], dt["trip_type"]
+            ))
+        conn2.commit()
+        print(f"[DB] {len(default_trips)} default trips seeded.")
+
     cur2.close()
     conn2.close()
+
 
 def get_setting(key, default_val=None):
     conn = get_db()
@@ -708,6 +883,299 @@ def delete_user(username: str):
         conn.close()
         return False  # Tidak boleh hapus user terakhir
     cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+# ── Servers CRUD ──────────────────────────────────────────────────────────────
+
+def get_servers():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM servers ORDER BY id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_server(server_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM servers WHERE id = ?", (server_id,))
+    r = cursor.fetchone()
+    conn.close()
+    return dict(r) if r else None
+
+def create_server(name, host, port=443, protocol='https'):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO servers (name, host, port, protocol) VALUES (?, ?, ?, ?)",
+        (name, host, int(port), protocol)
+    )
+    server_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return server_id
+
+def update_server(server_id, name, host, port, protocol):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE servers SET name=?, host=?, port=?, protocol=? WHERE id=?",
+        (name, host, int(port), protocol, server_id)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_server(server_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM servers WHERE id=?", (server_id,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+# ── Trips CRUD ────────────────────────────────────────────────────────────────
+
+def get_trips():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM trips ORDER BY id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d['waypoints'] = json.loads(d.get('waypoints') or '[]')
+        except Exception:
+            d['waypoints'] = []
+        result.append(d)
+    return result
+
+def get_trip(trip_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM trips WHERE id = ?", (trip_id,))
+    r = cursor.fetchone()
+    conn.close()
+    if not r:
+        return None
+    d = dict(r)
+    try:
+        d['waypoints'] = json.loads(d.get('waypoints') or '[]')
+    except Exception:
+        d['waypoints'] = []
+    return d
+
+def create_trip(data: dict):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO trips (
+        name, start_lat, start_lon, end_lat, end_lon,
+        route_mode, waypoints, min_speed, avg_speed, max_speed, ferry_speed,
+        trip_type, rita_depart, rita_arrive, ritb_depart, ritb_arrive,
+        nonstop_layover_min, nonstop_layover_max,
+        start_place_id, start_subplace_id, end_place_id, end_subplace_id
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        data['name'],
+        data.get('start_lat', 0), data.get('start_lon', 0),
+        data.get('end_lat', 0), data.get('end_lon', 0),
+        data.get('route_mode', 'direction'),
+        json.dumps(data.get('waypoints', [])),
+        data.get('min_speed', 20), data.get('avg_speed', 50), data.get('max_speed', 80),
+        data.get('ferry_speed', 25),
+        data.get('trip_type', 'single'),
+        data.get('rita_depart', ''), data.get('rita_arrive', ''),
+        data.get('ritb_depart', ''), data.get('ritb_arrive', ''),
+        data.get('nonstop_layover_min', 60), data.get('nonstop_layover_max', 60),
+        data.get('start_place_id'), data.get('start_subplace_id'),
+        data.get('end_place_id'), data.get('end_subplace_id'),
+    ))
+    trip_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return trip_id
+
+def update_trip(trip_id, data: dict):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE trips SET
+        name=?, start_lat=?, start_lon=?, end_lat=?, end_lon=?,
+        route_mode=?, waypoints=?, min_speed=?, avg_speed=?, max_speed=?, ferry_speed=?,
+        trip_type=?, rita_depart=?, rita_arrive=?, ritb_depart=?, ritb_arrive=?,
+        nonstop_layover_min=?, nonstop_layover_max=?,
+        start_place_id=?, start_subplace_id=?, end_place_id=?, end_subplace_id=?
+    WHERE id=?
+    """, (
+        data['name'],
+        data.get('start_lat', 0), data.get('start_lon', 0),
+        data.get('end_lat', 0), data.get('end_lon', 0),
+        data.get('route_mode', 'direction'),
+        json.dumps(data.get('waypoints', [])),
+        data.get('min_speed', 20), data.get('avg_speed', 50), data.get('max_speed', 80),
+        data.get('ferry_speed', 25),
+        data.get('trip_type', 'single'),
+        data.get('rita_depart', ''), data.get('rita_arrive', ''),
+        data.get('ritb_depart', ''), data.get('ritb_arrive', ''),
+        data.get('nonstop_layover_min', 60), data.get('nonstop_layover_max', 60),
+        data.get('start_place_id'), data.get('start_subplace_id'),
+        data.get('end_place_id'), data.get('end_subplace_id'),
+        trip_id
+    ))
+    conn.commit()
+    conn.close()
+
+def delete_trip(trip_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM trips WHERE id=?", (trip_id,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+# ── Sim Devices CRUD ──────────────────────────────────────────────────────────
+
+def get_sim_devices():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sim_devices ORDER BY id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_sim_device(sim_device_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sim_devices WHERE id = ?", (sim_device_id,))
+    r = cursor.fetchone()
+    conn.close()
+    return dict(r) if r else None
+
+def create_sim_device(device_id, name='', device_type='car'):
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO sim_devices (device_id, name, type) VALUES (?, ?, ?)",
+            (device_id, name, device_type)
+        )
+        new_id = cursor.lastrowid
+        conn.commit()
+        return new_id
+    except sqlite3.IntegrityError:
+        return None  # device_id duplikat
+    finally:
+        conn.close()
+
+def update_sim_device(sim_device_id, device_id, name, device_type):
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE sim_devices SET device_id=?, name=?, type=? WHERE id=?",
+            (device_id, name, device_type, sim_device_id)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+def delete_sim_device(sim_device_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sim_devices WHERE id=?", (sim_device_id,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+# ── Services CRUD ─────────────────────────────────────────────────────────────
+
+def get_services():
+    """Ambil semua services dengan join ke servers, trips, sim_devices."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            svc.id, svc.name, svc.interval, svc.status, svc.created_at,
+            svc.server_id, svc.trip_id, svc.sim_device_id,
+            srv.name AS server_name, srv.host AS server_host,
+            srv.port AS server_port, srv.protocol AS server_protocol,
+            t.name AS trip_name,
+            sd.device_id, sd.name AS device_name, sd.type AS device_type
+        FROM services svc
+        LEFT JOIN servers srv ON svc.server_id = srv.id
+        LEFT JOIN trips t ON svc.trip_id = t.id
+        LEFT JOIN sim_devices sd ON svc.sim_device_id = sd.id
+        ORDER BY svc.id ASC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_service(service_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            svc.id, svc.name, svc.interval, svc.status, svc.created_at,
+            svc.server_id, svc.trip_id, svc.sim_device_id,
+            srv.name AS server_name, srv.host AS server_host,
+            srv.port AS server_port, srv.protocol AS server_protocol,
+            t.name AS trip_name,
+            sd.device_id, sd.name AS device_name, sd.type AS device_type
+        FROM services svc
+        LEFT JOIN servers srv ON svc.server_id = srv.id
+        LEFT JOIN trips t ON svc.trip_id = t.id
+        LEFT JOIN sim_devices sd ON svc.sim_device_id = sd.id
+        WHERE svc.id = ?
+    """, (service_id,))
+    r = cursor.fetchone()
+    conn.close()
+    return dict(r) if r else None
+
+def create_service(name, server_id, trip_id, sim_device_id, interval=30):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO services (name, server_id, trip_id, sim_device_id, interval) VALUES (?,?,?,?,?)",
+        (name, server_id, trip_id, sim_device_id, int(interval))
+    )
+    new_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+def update_service(service_id, name, server_id, trip_id, sim_device_id, interval=30):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE services SET name=?, server_id=?, trip_id=?, sim_device_id=?, interval=? WHERE id=?",
+        (name, server_id, trip_id, sim_device_id, int(interval), service_id)
+    )
+    conn.commit()
+    conn.close()
+
+def set_service_status(service_id, status):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE services SET status=? WHERE id=?", (status, service_id))
+    conn.commit()
+    conn.close()
+
+def delete_service(service_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM services WHERE id=?", (service_id,))
     affected = cursor.rowcount
     conn.commit()
     conn.close()
