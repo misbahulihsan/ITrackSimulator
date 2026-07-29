@@ -3,16 +3,58 @@ import random
 import requests
 import math
 import os
+import re
+import secrets
 import threading
 import json
-from flask import Flask, request, jsonify, send_from_directory, session, redirect
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, make_response
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from geopy.distance import great_circle
+from dotenv import load_dotenv
 import database
 
-app = Flask(__name__, static_folder='.')
-app.secret_key = 'ihsan_traccar_secret_key_123'
-CORS(app)
+# Load environment variables from .env file
+load_dotenv()
+
+# ── App Initialization ──────────────────────────────────────────────────────
+# static_folder=None → menonaktifkan endpoint /static/ otomatis Flask
+# yang sebelumnya mengekspose SELURUH direktori project (CRITICAL security fix)
+app = Flask(__name__, static_folder=None)
+
+# Secret key dari environment variable, bukan hardcoded
+_secret_key = os.environ.get('FLASK_SECRET_KEY', '')
+if not _secret_key:
+    _secret_key = secrets.token_hex(32)
+    print('[SECURITY WARNING] FLASK_SECRET_KEY not set in .env. Using random key (sessions will reset on restart).')
+app.secret_key = _secret_key
+
+# ── Session Cookie Security ──────────────────────────────────────────────────
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 jam
+
+# ── CORS — Batasi ke domain spesifik ────────────────────────────────────────
+_allowed_origins_raw = os.environ.get(
+    'ALLOWED_ORIGINS',
+    'https://simulator.misbahulihsan.com,http://192.168.18.8:8083,http://localhost:8083'
+)
+_allowed_origins = [o.strip() for o in _allowed_origins_raw.split(',') if o.strip()]
+CORS(app, origins=_allowed_origins, supports_credentials=True)
+
+# ── Rate Limiter — Cegah brute-force login ───────────────────────────────────
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=[],
+    storage_uri='memory://'
+)
+
+# ── Kredensial Login dari environment variable ───────────────────────────────
+ADMIN_USERNAME = os.environ.get('APP_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('APP_PASSWORD', '')
 
 ROUTES_DIR = "routes"
 STATE_DIR = "state"
@@ -155,9 +197,19 @@ def check_upcoming_corners(route, cumulative_dist, current_dist, current_bearing
             return True
     return False
 
+def sanitize_device_id(device_id: str) -> str:
+    """Sanitasi device_id untuk digunakan sebagai nama file.
+    Hanya izinkan alfanumerik, dash, underscore, dan spasi (spasi → underscore).
+    Cegah path traversal seperti '../etc/passwd'.
+    """
+    clean = re.sub(r'[^a-zA-Z0-9_\- ]', '_', device_id)
+    clean = clean.replace(' ', '_').lower()
+    clean = clean.strip('._-')
+    return clean[:64] if clean else 'unknown'
+
 def get_route(device, traccar_host):
     device_id = device["id"]
-    safe_name = device_id.lower().replace(" ", "_")
+    safe_name = sanitize_device_id(device_id)
     json_path = os.path.join(ROUTES_DIR, f"{safe_name}.json")
     geojson_path = os.path.join(ROUTES_DIR, f"{safe_name}.geojson")
     
@@ -788,7 +840,7 @@ def simulation_step(device, route, segments_dist, cumulative_dist, total_dist,
 # Simulation Runner Thread Function
 def run_simulation(device, traccar_host, shutdown_event):
     device_id = device["id"]
-    safe_name = device_id.lower().replace(" ", "_")
+    safe_name = sanitize_device_id(device_id)
     state_file = os.path.join(STATE_DIR, f"{safe_name}_state.json")
     
     interval = device.get("interval", 30)
@@ -1176,9 +1228,10 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
         f"- Actual: {actual_arrive or '-'}"
     )
     
+    session_name = database.get_setting("wa_session", "im39431").strip()
     url = f"{api_url.rstrip('/')}/api/sendText"
     payload = {
-        "session": "default",
+        "session": session_name,
         "chatId": chat_id,
         "text": message
     }
@@ -1201,30 +1254,57 @@ def send_whatsapp_notification(device_id, rit_label, status_label, date, schedul
 
 @app.before_request
 def check_auth():
-    # Allow login.html and api/login to bypass auth
+    # Tambahkan security headers ke semua response
+    # (dilanjutkan di after_request)
+
+    # Allow login.html dan api/login tanpa autentikasi
     if request.path == '/login.html':
         if session.get("logged_in"):
             return redirect('/')
         return
     if request.path == '/api/login':
         return
-        
-    # All other paths require auth
+
+    # Semua path lain memerlukan autentikasi
     if not session.get("logged_in"):
         if request.path.startswith('/api/'):
             return jsonify({"error": "Unauthorized"}), 401
         return redirect('/login.html')
+
+@app.after_request
+def add_security_headers(response):
+    """Tambahkan HTTP security headers ke semua response."""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()'
+    # Content-Security-Policy — izinkan CDN yang dipakai (Leaflet, dll)
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; "
+        "style-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com fonts.gstatic.com; "
+        "img-src 'self' data: *.tile.openstreetmap.org *.basemaps.cartocdn.com; "
+        "font-src 'self' fonts.gstatic.com; "
+        "connect-src 'self' router.project-osrm.org; "
+        "frame-ancestors 'none';"
+    )
+    return response
 
 @app.route('/login.html')
 def login_page():
     return send_from_directory('.', 'login.html')
 
 @app.route('/api/login', methods=['POST'])
+@limiter.limit("5 per minute")  # Rate limit: maks 5 percobaan login per menit per IP
 def login():
     data = request.json or {}
-    username = data.get("username")
-    password = data.get("password")
-    if username == "admin" and password == "ihsan456":
+    username = data.get("username", "")
+    password = data.get("password", "")
+    # Validasi panjang input untuk cegah abuse
+    if len(username) > 128 or len(password) > 256:
+        return jsonify({"error": "Invalid credentials"}), 401
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD and ADMIN_PASSWORD:
         session["logged_in"] = True
         return jsonify({"success": True})
     return jsonify({"error": "Invalid username or password"}), 401
@@ -1401,7 +1481,7 @@ def delete_device(device_id):
         if device_id in telemetry_data:
             del telemetry_data[device_id]
             
-    safe_name = device_id.lower().replace(" ", "_")
+    safe_name = sanitize_device_id(device_id)
     files_to_delete = [
         os.path.join(ROUTES_DIR, f"{safe_name}.json"),
         os.path.join(ROUTES_DIR, f"{safe_name}.geojson"),
@@ -1462,7 +1542,7 @@ def reroute_device(device_id):
     stop_simulation_thread(device_id)
     
     # 2. Clean up cached route files
-    safe_name = device_id.lower().replace(" ", "_")
+    safe_name = sanitize_device_id(device_id)
     json_path = os.path.join(ROUTES_DIR, f"{safe_name}.json")
     geojson_path = os.path.join(ROUTES_DIR, f"{safe_name}.geojson")
     state_file = os.path.join(STATE_DIR, f"{safe_name}_state.json")
@@ -1597,7 +1677,8 @@ def get_whatsapp_settings():
         "enabled": database.get_setting("wa_notif_enabled", "0") == "1",
         "number": database.get_setting("wa_target_number", "+6285727255841"),
         "url": database.get_setting("wa_api_url", "https://waha.misbahulihsan.com"),
-        "key": database.get_setting("wa_api_key", "Aku123")
+        "key": database.get_setting("wa_api_key", "Aku123"),
+        "session": database.get_setting("wa_session", "im39431")
     })
 
 @app.route('/api/settings/whatsapp', methods=['POST'])
@@ -1607,6 +1688,7 @@ def save_whatsapp_settings():
     database.set_setting("wa_target_number", data.get("number", "+6285727255841").strip())
     database.set_setting("wa_api_url", data.get("url", "https://waha.misbahulihsan.com").strip())
     database.set_setting("wa_api_key", data.get("key", "Aku123").strip())
+    database.set_setting("wa_session", data.get("session", "im39431").strip())
     return jsonify({"success": True})
 
 @app.route('/api/service/status', methods=['GET'])

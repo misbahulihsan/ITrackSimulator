@@ -2,3 +2,5 @@ requests
 geopy
 flask
 flask-cors
+python-dotenv
+flask-limiter
