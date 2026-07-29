@@ -1,8 +1,9 @@
 import sqlite3
 import os
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_PATH = "simulator.db"
+DB_PATH = "simulatorgps.db"
 CONFIG_PATH = "config.json"
 
 def get_db():
@@ -78,6 +79,18 @@ def init_db():
         scheduled_arrive TEXT,
         actual_arrive TEXT,
         status TEXT
+    )
+    """)
+    
+    # Create users table for database-based login
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'admin',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        last_login TEXT
     )
     """)
     
@@ -186,6 +199,22 @@ def init_db():
             cursor.execute("INSERT INTO settings (key, value) VALUES (?, ?)", ("traccar_host", "tracking.misbahulihsan.com"))
             conn.commit()
         conn.close()
+
+    # Seed default admin user if no users exist
+    conn2 = get_db()
+    cur2 = conn2.cursor()
+    cur2.execute("SELECT COUNT(*) FROM users")
+    if cur2.fetchone()[0] == 0:
+        default_hash = generate_password_hash("ihsan456")
+        cur2.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            ("admin", default_hash, "admin")
+        )
+        conn2.commit()
+        print("[DB] Default admin user created. Username: admin | Password: ihsan456")
+        print("[DB] Segera ganti password default via /api/users/change-password !")
+    cur2.close()
+    conn2.close()
 
 def get_setting(key, default_val=None):
     conn = get_db()
@@ -576,3 +605,110 @@ def get_subplace(place_id, subplace_id):
             "longitude": r["longitude"]
         }
     return None
+
+# ── User Management (Database Login) ─────────────────────────────────────────
+
+def verify_user(username: str, password: str):
+    """
+    Verifikasi username dan password.
+    Mengembalikan dict user jika valid, None jika gagal.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    if row and check_password_hash(row["password_hash"], password):
+        return {
+            "id": row["id"],
+            "username": row["username"],
+            "role": row["role"],
+            "created_at": row["created_at"],
+            "last_login": row["last_login"]
+        }
+    return None
+
+def get_user(username: str):
+    """Ambil data user berdasarkan username (tanpa password hash)."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role, created_at, last_login FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def get_all_users():
+    """Ambil semua user (tanpa password hash)."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role, created_at, last_login FROM users ORDER BY id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def create_user(username: str, password: str, role: str = "admin"):
+    """
+    Buat user baru dengan password yang di-hash.
+    Kembalikan True jika berhasil, False jika username sudah ada.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        hashed = generate_password_hash(password)
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, hashed, role)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False  # username duplikat
+    finally:
+        conn.close()
+
+def change_password(username: str, new_password: str):
+    """Ganti password user. Kembalikan True jika berhasil."""
+    conn = get_db()
+    cursor = conn.cursor()
+    hashed = generate_password_hash(new_password)
+    cursor.execute(
+        "UPDATE users SET password_hash = ? WHERE username = ?",
+        (hashed, username)
+    )
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+def update_last_login(username: str):
+    """Update waktu login terakhir user."""
+    import datetime
+    conn = get_db()
+    cursor = conn.cursor()
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute(
+        "UPDATE users SET last_login = ? WHERE username = ?",
+        (now_str, username)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_user(username: str):
+    """
+    Hapus user. Tidak boleh hapus user terakhir (minimal harus ada 1 user).
+    Kembalikan True jika berhasil, False jika gagal/ditolak.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    count = cursor.fetchone()[0]
+    if count <= 1:
+        conn.close()
+        return False  # Tidak boleh hapus user terakhir
+    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
