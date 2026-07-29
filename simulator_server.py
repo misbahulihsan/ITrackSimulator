@@ -1268,7 +1268,7 @@ def check_auth():
 
     # Semua path lain memerlukan autentikasi
     if not session.get("logged_in"):
-        if request.path.startswith('/api/'):
+        if request.path.startswith('/api/') or request.path.startswith('/routes/'):
             return jsonify({"error": "Unauthorized"}), 401
         return redirect('/login.html')
 
@@ -1679,6 +1679,19 @@ def map_html():
 @app.route('/routes/<path:filename>')
 def serve_routes(filename):
     return send_from_directory(ROUTES_DIR, filename)
+
+@app.route('/api/routes/<device_id>', methods=['GET'])
+def api_get_device_route(device_id):
+    safe_name = sanitize_device_id(device_id)
+    json_path = os.path.join(ROUTES_DIR, f"{safe_name}.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    return jsonify([]), 404
 
 @app.route('/api/devices', methods=['GET'])
 def get_devices():

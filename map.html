@@ -864,6 +864,9 @@ let map, miniMap, miniMapMarker;
 let mapPickerTarget = 'start';
 let mapPickerSelected = null;
 const markers = {};
+const departMarkers = {};
+const arriveMarkers = {};
+const routePolylines = {};
 const tileLayers = {};
 
 // ── Navigation Router ──────────────────────────────────
@@ -926,6 +929,68 @@ function initMap() {
     });
 }
 
+function sanitizeDeviceId(id) {
+    return id.toLowerCase().replace(/[^a-z0-9_\- ]/g, '_').replace(/ /g, '_').replace(/^[\._\-]+|[\._\-]+$/g, '');
+}
+
+function getPinIcon(label, bg='#4ade80', color='#0b1120') {
+    return L.divIcon({
+        html: `<div style="
+            background:${bg};
+            color:${color};
+            font-weight:800;
+            font-size:12px;
+            font-family:'Inter',sans-serif;
+            width:26px;
+            height:26px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border:2px solid #ffffff;
+            box-shadow:0 3px 10px rgba(0,0,0,0.5);
+        ">${label}</div>`,
+        className: '',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+    });
+}
+
+async function loadRouteLine(id, safeName, defaultPoints) {
+    if (routePolylines[id]) return;
+    routePolylines[id] = 'loading';
+    
+    let latlngs = [];
+    try {
+        const res = await fetch(`/api/routes/${encodeURIComponent(id)}`);
+        if (res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    latlngs = data.map(pt => [pt.lat, pt.lon]);
+                }
+            }
+        }
+    } catch(e) {}
+
+    if (latlngs.length === 0 && defaultPoints && defaultPoints.length >= 2) {
+        latlngs = defaultPoints.map(pt => [pt.lat, pt.lon]);
+    }
+
+    if (latlngs.length >= 2) {
+        const poly = L.polyline(latlngs, {
+            color: '#38bdf8',
+            weight: 4,
+            opacity: 0.85,
+            dashArray: '6, 8'
+        }).addTo(map);
+        routePolylines[id] = poly;
+    } else {
+        delete routePolylines[id];
+    }
+}
+
 function getVehicleIcon(type, state) {
     const emoji = type === 'bus' ? '🚌' : type === 'motorcycle' ? '🏍️' : '🚗';
     const isActive = state && !['COMPLETED','SCHEDULED','PAUSED','STOPPED'].some(s => state.includes(s));
@@ -942,6 +1007,8 @@ function updateMapMarkers(telemetry) {
     Object.entries(telemetry).forEach(([id, d]) => {
         if (!d.lat || !d.lon) return;
         const isActive = d.state && !['COMPLETED','SCHEDULED','PAUSED','STOPPED'].some(s => d.state.includes(s));
+        
+        // 1. Vehicle Marker
         if (!markers[id]) {
             markers[id] = L.marker([d.lat, d.lon]).addTo(map);
         }
@@ -955,19 +1022,61 @@ function updateMapMarkers(telemetry) {
                 ${d.progress !== undefined ? `<br><span style="font-size:11px">📍 ${d.progress}% selesai</span>` : ''}
             </div>
         `);
+
+        // 2. Depart (D) and Arrive (A) Pin Markers
+        const isRev = !!d.is_reversed;
+        const deptCoords = isRev ? d.end : d.start;
+        const arrvCoords = isRev ? d.start : d.end;
+
+        if (deptCoords && deptCoords.lat && deptCoords.lon) {
+            if (!departMarkers[id]) {
+                departMarkers[id] = L.marker([deptCoords.lat, deptCoords.lon], { icon: getPinIcon('D', '#4ade80') }).addTo(map);
+                departMarkers[id].bindPopup(`<b>Depart (D)</b><br>${d.name || id}`);
+            } else {
+                departMarkers[id].setLatLng([deptCoords.lat, deptCoords.lon]);
+            }
+        }
+
+        if (arrvCoords && arrvCoords.lat && arrvCoords.lon) {
+            if (!arriveMarkers[id]) {
+                arriveMarkers[id] = L.marker([arrvCoords.lat, arrvCoords.lon], { icon: getPinIcon('A', '#f87171') }).addTo(map);
+                arriveMarkers[id].bindPopup(`<b>Arrive (A)</b><br>${d.name || id}`);
+            } else {
+                arriveMarkers[id].setLatLng([arrvCoords.lat, arrvCoords.lon]);
+            }
+        }
+
+        // 3. Route Polyline
+        const safeName = sanitizeDeviceId(id);
+        const fallbackPts = [];
+        if (deptCoords && deptCoords.lat) fallbackPts.push(deptCoords);
+        if (Array.isArray(d.waypoints)) fallbackPts.push(...d.waypoints);
+        if (arrvCoords && arrvCoords.lat) fallbackPts.push(arrvCoords);
+        
+        loadRouteLine(id, safeName, fallbackPts);
+
         listed.push({ id, ...d, isActive });
     });
-    // Remove stale markers
+
+    // Remove stale markers and route polylines
     Object.keys(markers).forEach(id => {
-        if (!telemetry[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+        if (!telemetry[id]) {
+            map.removeLayer(markers[id]); delete markers[id];
+            if (departMarkers[id]) { map.removeLayer(departMarkers[id]); delete departMarkers[id]; }
+            if (arriveMarkers[id]) { map.removeLayer(arriveMarkers[id]); delete arriveMarkers[id]; }
+            if (routePolylines[id] && routePolylines[id] !== 'loading') {
+                map.removeLayer(routePolylines[id]); delete routePolylines[id];
+            }
+        }
     });
+
     // Update vehicle list overlay
     const vlist = document.getElementById('vehicle-list');
     if (listed.length === 0) {
         vlist.innerHTML = '<p style="color:var(--text-3);font-size:12px">Belum ada service berjalan</p>';
     } else {
         vlist.innerHTML = listed.map(d => `
-            <div class="vehicle-card">
+            <div class="vehicle-card" style="cursor:pointer" onclick="focusVehicle('${d.id}', ${d.lat}, ${d.lon})">
                 <div class="vehicle-dot ${d.isActive ? 'driving' : (d.state && d.state.includes('WAITING') ? 'waiting' : 'stopped')}"></div>
                 <div class="vehicle-info">
                     <div class="vehicle-name">${d.name || d.id}</div>
@@ -976,6 +1085,13 @@ function updateMapMarkers(telemetry) {
                 <div class="vehicle-speed">${d.speed || 0} km/h</div>
             </div>
         `).join('');
+    }
+}
+
+function focusVehicle(id, lat, lon) {
+    if (map && lat && lon) {
+        map.flyTo([lat, lon], 12);
+        if (markers[id]) markers[id].openPopup();
     }
 }
 
