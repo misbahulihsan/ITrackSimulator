@@ -52,9 +52,9 @@ limiter = Limiter(
     storage_uri='memory://'
 )
 
-# ── Kredensial Login dari environment variable ───────────────────────────────
-ADMIN_USERNAME = os.environ.get('APP_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('APP_PASSWORD', '')
+# ── Kredensial Login dari Database ──────────────────────────────────────────
+# Username & password disimpan di tabel 'users' pada simulator.db
+# Default user: admin / ihsan456 (di-seed otomatis saat DB pertama kali dibuat)
 
 ROUTES_DIR = "routes"
 STATE_DIR = "state"
@@ -1299,20 +1299,92 @@ def login_page():
 @limiter.limit("5 per minute")  # Rate limit: maks 5 percobaan login per menit per IP
 def login():
     data = request.json or {}
-    username = data.get("username", "")
+    username = data.get("username", "").strip()
     password = data.get("password", "")
     # Validasi panjang input untuk cegah abuse
     if len(username) > 128 or len(password) > 256:
         return jsonify({"error": "Invalid credentials"}), 401
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD and ADMIN_PASSWORD:
+    user = database.verify_user(username, password)
+    if user:
         session["logged_in"] = True
-        return jsonify({"success": True})
+        session["username"] = user["username"]
+        session["role"] = user["role"]
+        database.update_last_login(user["username"])
+        return jsonify({"success": True, "username": user["username"], "role": user["role"]})
     return jsonify({"error": "Invalid username or password"}), 401
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    session.pop("logged_in", None)
+    session.clear()
     return jsonify({"success": True})
+
+# ── User Management API Endpoints ─────────────────────────────────────────────
+
+@app.route('/api/users', methods=['GET'])
+def api_get_users():
+    """Ambil daftar semua user (hanya role admin)."""
+    if session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    return jsonify(database.get_all_users())
+
+@app.route('/api/users', methods=['POST'])
+def api_create_user():
+    """Buat user baru."""
+    if session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    role = data.get("role", "admin")
+    if not username or not password:
+        return jsonify({"error": "Username dan password wajib diisi"}), 400
+    if len(username) > 64 or len(password) > 128:
+        return jsonify({"error": "Username/password terlalu panjang"}), 400
+    if role not in ["admin", "viewer"]:
+        return jsonify({"error": "Role harus 'admin' atau 'viewer'"}), 400
+    ok = database.create_user(username, password, role)
+    if ok:
+        return jsonify({"success": True, "username": username})
+    return jsonify({"error": f"Username '{username}' sudah ada"}), 409
+
+@app.route('/api/users/change-password', methods=['POST'])
+def api_change_password():
+    """Ganti password — user bisa ganti password sendiri, admin bisa ganti siapa saja."""
+    data = request.json or {}
+    target_username = data.get("username", "").strip()
+    new_password = data.get("new_password", "")
+    current_user = session.get("username", "")
+    # Hanya admin yang bisa ganti password orang lain
+    if target_username != current_user and session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    if not new_password or len(new_password) < 6:
+        return jsonify({"error": "Password minimal 6 karakter"}), 400
+    if len(new_password) > 128:
+        return jsonify({"error": "Password terlalu panjang"}), 400
+    ok = database.change_password(target_username, new_password)
+    if ok:
+        return jsonify({"success": True})
+    return jsonify({"error": "User tidak ditemukan"}), 404
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+def api_delete_user(username):
+    """Hapus user (hanya admin, tidak bisa hapus user terakhir)."""
+    if session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    if username == session.get("username"):
+        return jsonify({"error": "Tidak bisa menghapus akun sendiri"}), 400
+    ok = database.delete_user(username)
+    if ok:
+        return jsonify({"success": True})
+    return jsonify({"error": "User tidak ditemukan atau merupakan user terakhir"}), 400
+
+@app.route('/api/users/me', methods=['GET'])
+def api_whoami():
+    """Informasi user yang sedang login."""
+    return jsonify({
+        "username": session.get("username", ""),
+        "role": session.get("role", "")
+    })
 
 # REST API Endpoints
 @app.route('/')
